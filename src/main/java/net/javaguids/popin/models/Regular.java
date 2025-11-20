@@ -3,14 +3,14 @@ package net.javaguids.popin.models;
 public class Regular extends User {
 
     public Regular() {
-        setRole(Role.ATTENDEE);
+        setRole(new Role("ATTENDEE"));
     }
 
     public Regular(int id, String username, String passwordHash) {
-        super(id, username, passwordHash, Role.ATTENDEE);
+        super(id, username, passwordHash, new Role("ATTENDEE"));
     }
 
     public Regular(String username, String passwordHash) {
-        super(username, passwordHash, Role.ATTENDEE);
+        super(username, passwordHash, new Role("ATTENDEE"));
     }
 }
