@@ -1,12 +1,13 @@
 package net.javaguids.popin.controllers;
 
 import javafx.fxml.FXML;
-import javafx.scene.control.Label;
-import javafx.scene.control.Button;
 import javafx.scene.control.Alert;
-
+import javafx.scene.control.Button;
+import javafx.scene.control.Label;
 import net.javaguids.popin.models.Event;
 import net.javaguids.popin.models.PaidEvent;
+import net.javaguids.popin.models.User;
+import net.javaguids.popin.services.EventService;
 import net.javaguids.popin.services.RegistrationService;
 
 public class EventDetailsController {
@@ -15,63 +16,154 @@ public class EventDetailsController {
     @FXML private Label descriptionLabel;
     @FXML private Label dateLabel;
     @FXML private Label venueLabel;
-    @FXML private Label capacityLabel;
     @FXML private Label priceLabel;
+    @FXML private Label capacityLabel;
 
-    @FXML private Button registerButton;   // if attendee
-    @FXML private Button checkInButton;    // if organizer/admin
-    @FXML private Button editButton;       // if organizer
-    @FXML private Button deleteButton;     // if organizer or admin
+    @FXML private Button registerButton;
+    @FXML private Button cancelButton;
+    @FXML private Button checkInButton;
+    @FXML private Button editButton;
+    @FXML private Button deleteButton;
 
     private Event event;
-    private RegistrationService registrationService = new RegistrationService();
+    private User loggedInUser;
 
-    // Called by EventListController
+    private final RegistrationService registrationService = new RegistrationService();
+    private final EventService eventService = new EventService();
+
+    // Called from EventListController
     public void setEvent(Event event) {
         this.event = event;
         loadEventDetails();
     }
 
-    private void loadEventDetails() {
-        if (event == null) return;
+    // Called from dashboard after login
+    public void setLoggedInUser(User user) {
+        this.loggedInUser = user;
+        updateButtonsForRole();
+    }
 
+    private void loadEventDetails() {
         titleLabel.setText(event.getTitle());
         descriptionLabel.setText(event.getDescription());
-        dateLabel.setText(event.getDateTime().toString());
         venueLabel.setText(event.getVenue());
+        dateLabel.setText(event.getDateTime().toString());
         capacityLabel.setText("Capacity: " + event.getCapacity());
 
         if (event instanceof PaidEvent paid) {
             priceLabel.setText("Price: €" + paid.getPrice());
         } else {
-            priceLabel.setText("Free event");
+            priceLabel.setText("Free Event");
         }
-
-        // Optional: Hide buttons based on role
-        // This requires passing loggedInUser to controller
     }
 
-    // ------------------------------------
+    // -----------------------------------------
+    // ROLE-BASED BUTTON LOGIC
+    // -----------------------------------------
+    private void updateButtonsForRole() {
+        if (loggedInUser == null) return;
+
+        String role = loggedInUser.getRole().getName();
+
+        switch (role) {
+            case "ATTENDEE" -> setupAttendeeButtons();
+            case "ORGANIZER" -> setupOrganizerButtons();
+            case "ADMIN" -> setupAdminButtons();
+        }
+    }
+
+    private void setupAttendeeButtons() {
+        registerButton.setVisible(!registrationService.isEventFull(event.getId())
+                && !registrationService.isUserRegistered(event.getId(), loggedInUser.getId()));
+
+        cancelButton.setVisible(
+                registrationService.isUserRegistered(event.getId(), loggedInUser.getId())
+        );
+
+        checkInButton.setVisible(false);
+        editButton.setVisible(false);
+        deleteButton.setVisible(false);
+    }
+
+    private void setupOrganizerButtons() {
+        registerButton.setVisible(false);
+        cancelButton.setVisible(false);
+
+        checkInButton.setVisible(true);
+        editButton.setVisible(true);
+        deleteButton.setVisible(true);
+    }
+
+    private void setupAdminButtons() {
+        registerButton.setVisible(false);
+        cancelButton.setVisible(false);
+
+        checkInButton.setVisible(true);
+        editButton.setVisible(false);
+        deleteButton.setVisible(true);
+    }
+
+    // -----------------------------------------
     // BUTTON ACTIONS
-    // ------------------------------------
+    // -----------------------------------------
+
     @FXML
     private void handleRegister() {
-        showInfo("Registration is not yet implemented (RegistrationService coming next).");
+        try {
+            registrationService.registerUser(event.getId(), loggedInUser.getId());
+            showSuccess("You are now registered!");
+            updateButtonsForRole();
+        } catch (Exception e) {
+            showError(e.getMessage());
+        }
+    }
+
+    @FXML
+    private void handleCancelRegistration() {
+        try {
+            registrationService.cancelRegistration(event.getId(), loggedInUser.getId());
+            showSuccess("Your registration has been cancelled.");
+            updateButtonsForRole();
+        } catch (Exception e) {
+            showError(e.getMessage());
+        }
     }
 
     @FXML
     private void handleCheckIn() {
-        showInfo("Check-in flow coming soon.");
+        try {
+            registrationService.checkInUser(event.getId(), loggedInUser.getId());
+            showSuccess("User checked in successfully.");
+        } catch (Exception e) {
+            showError(e.getMessage());
+        }
     }
 
     @FXML
-    private void handleEdit() {
-        showInfo("Edit event feature not implemented yet.");
+    private void handleEditEvent() {
+        showInfo("Edit event not implemented yet.");
     }
 
     @FXML
-    private void handleDelete() {
-        showInfo("Delete event feature not implemented yet.");
+    private void handleDeleteEvent() {
+        showInfo("Delete event not implemented yet.");
+    }
+
+    // -----------------------------------------
+    // UI UTILITIES
+    // -----------------------------------------
+    private void showError(String msg) {
+        Alert alert = new Alert(Alert.AlertType.ERROR);
+        alert.setHeaderText("Error");
+        alert.setContentText(msg);
+        alert.show();
+    }
+
+    private void showSuccess(String msg) {
+        Alert alert = new Alert(Alert.AlertType.INFORMATION);
+        alert.setHeaderText("Success");
+        alert.setContentText(msg);
+        alert.show();
     }
 
     private void showInfo(String msg) {
