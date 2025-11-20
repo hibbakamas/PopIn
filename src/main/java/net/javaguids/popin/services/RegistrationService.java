@@ -77,4 +77,8 @@ public class RegistrationService {
 
         return registrationDAO.countRegistered(eventId) >= event.getCapacity();
     }
+
+    public boolean isUserRegistered(int eventId, int userId) {
+        return registrationDAO.isUserRegistered(eventId, userId);
+    }
 }
