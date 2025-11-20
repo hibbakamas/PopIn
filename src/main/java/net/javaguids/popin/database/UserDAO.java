@@ -12,26 +12,26 @@ public class UserDAO {
         String sql = "SELECT id, username, password_hash, role_name FROM users WHERE username = ?";
 
         try (Connection conn = Database.getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
 
-            ps.setString(1, username);
+            stmt.setString(1, username);
 
-            try (ResultSet rs = ps.executeQuery()) {
+            try (ResultSet rs = stmt.executeQuery()) {
                 if (rs.next()) {
-                    Role role = new Role(rs.getString("role_name"));
+                    int id = rs.getInt("id");
+                    String uname = rs.getString("username");
+                    String passwordHash = rs.getString("password_hash");
+                    String roleName = rs.getString("role_name");
 
-                    User user = new User(
-                            rs.getInt("id"),
-                            rs.getString("username"),
-                            rs.getString("password_hash"),
-                            role
-                    );
+                    Role role = new Role(roleName);
+                    User user = new User(id, uname, passwordHash, role);
+
                     return Optional.of(user);
                 }
             }
 
         } catch (SQLException e) {
-            System.err.println("Error finding user by username: " + e.getMessage());
+            System.err.println("UserDAO.findByUsername error: " + e.getMessage());
         }
 
         return Optional.empty();
@@ -41,17 +41,17 @@ public class UserDAO {
         String sql = "INSERT INTO users (username, password_hash, role_name) VALUES (?, ?, ?)";
 
         try (Connection conn = Database.getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
 
-            ps.setString(1, user.getUsername());
-            ps.setString(2, user.getPasswordHash());
-            ps.setString(3, user.getRole().getName());
+            stmt.setString(1, user.getUsername());
+            stmt.setString(2, user.getPasswordHash());
+            stmt.setString(3, user.getRole().getName());
 
-            int rows = ps.executeUpdate();
+            int rows = stmt.executeUpdate();
             return rows == 1;
 
         } catch (SQLException e) {
-            System.err.println("Error creating user: " + e.getMessage());
+            System.err.println("UserDAO.createUser error: " + e.getMessage());
             return false;
         }
     }
