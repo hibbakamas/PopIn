@@ -55,3 +55,28 @@
     -fx-background-color: linear-gradient(#9c5fff, #7b2cff); /* brighter hover */
     -fx-effect: dropshadow(gaussian, rgba(123,44,255,0.5), 25, 0.4, 0, 0);
 }
+
+.dashboard-card {
+    -fx-background-color: white;
+    -fx-padding: 30;
+    -fx-spacing: 20;
+    -fx-alignment: center;
+    -fx-background-radius: 15;
+    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.15), 15, 0, 0, 5);
+}
+
+.dashboard-button {
+    -fx-pref-width: 250;
+    -fx-padding: 10 20;
+    -fx-background-radius: 10;
+    -fx-font-size: 15px;
+}
+
+.logout-button {
+    -fx-pref-width: 250;
+    -fx-padding: 10 20;
+    -fx-background-radius: 10;
+    -fx-background-color: #ff4d4d;
+    -fx-text-fill: white;
+    -fx-font-size: 15px;
+}
