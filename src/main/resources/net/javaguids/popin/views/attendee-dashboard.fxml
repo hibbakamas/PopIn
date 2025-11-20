@@ -7,32 +7,27 @@
 
 <StackPane xmlns="http://javafx.com/javafx/8"
            xmlns:fx="http://javafx.com/fxml"
-           fx:controller="net.javaguids.popin.controllers.AdminDashboardController"
+           fx:controller="net.javaguids.popin.controllers.AttendeeDashboardController"
            alignment="CENTER"
            stylesheets="@../styles.css">
 
     <VBox spacing="20" alignment="CENTER">
 
-        <!-- Card -->
         <VBox spacing="20" alignment="CENTER" styleClass="dashboard-card">
 
-            <Label text="Admin Dashboard" styleClass="title"/>
+            <Label text="Attendee Dashboard" styleClass="title"/>
 
-            <Button text="View All Events"
+            <Button text="Browse Events"
                     styleClass="dashboard-button"
-                    onAction="#handleViewEvents"/>
+                    onAction="#handleBrowseEvents"/>
 
-            <Button text="View All Users"
+            <Button text="My Registrations"
                     styleClass="dashboard-button"
-                    onAction="#handleViewUsers"/>
+                    onAction="#handleMyRegistrations"/>
 
-            <Button text="Analytics"
+            <Button text="Profile"
                     styleClass="dashboard-button"
-                    onAction="#handleViewAnalytics"/>
-
-            <Button text="Manage Flags / Reports"
-                    styleClass="dashboard-button"
-                    onAction="#handleViewFlags"/>
+                    onAction="#handleProfile"/>
 
             <Button text="Logout"
                     styleClass="logout-button"
