@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.geometry.Pos?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+
+<StackPane xmlns:fx="http://javafx.com/fxml"
+           fx:controller="net.javaguids.popin.controllers.LoginController"
+           stylesheets="@../styles.css"
+           alignment="CENTER">
+
+    <VBox spacing="20" alignment="CENTER">
+        <VBox styleClass="login-card">
+
+            <Label text="PopIn" styleClass="title"/>
+
+            <TextField fx:id="usernameField"
+                       promptText="Username"
+                       styleClass="text-field"/>
+
+            <PasswordField fx:id="passwordField"
+                           promptText="Password"
+                           styleClass="password-field"/>
+
+            <Button text="Login"
+                    onAction="#handleLogin"
+                    styleClass="login-button"/>
+        </VBox>
+    </VBox>
+
+</StackPane>
