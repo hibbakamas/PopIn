@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.geometry.Pos?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+
+<StackPane xmlns="http://javafx.com/javafx/8"
+           xmlns:fx="http://javafx.com/fxml"
+           fx:controller="net.javaguids.popin.controllers.AttendeeDashboardController"
+           alignment="CENTER"
+           stylesheets="@../styles.css">
+
+    <VBox spacing="20" alignment="CENTER">
+
+        <VBox spacing="20" alignment="CENTER" styleClass="dashboard-card">
+
+            <Label text="Attendee Dashboard" styleClass="title"/>
+
+            <Button text="Browse Events"
+                    styleClass="dashboard-button"
+                    onAction="#handleBrowseEvents"/>
+
+            <Button text="My Registrations"
+                    styleClass="dashboard-button"
+                    onAction="#handleMyRegistrations"/>
+
+            <Button text="Profile"
+                    styleClass="dashboard-button"
+                    onAction="#handleProfile"/>
+
+            <Button text="Logout"
+                    styleClass="logout-button"
+                    onAction="#handleLogout"/>
+
+        </VBox>
+
+    </VBox>
+
+</StackPane>

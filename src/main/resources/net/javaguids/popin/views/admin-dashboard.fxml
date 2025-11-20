@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.geometry.Pos?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+
+<StackPane xmlns="http://javafx.com/javafx/8"
+           xmlns:fx="http://javafx.com/fxml"
+           fx:controller="net.javaguids.popin.controllers.AdminDashboardController"
+           alignment="CENTER"
+           stylesheets="@../styles.css">
+
+    <VBox spacing="20" alignment="CENTER">
+
+        <!-- Card -->
+        <VBox spacing="20" alignment="CENTER" styleClass="dashboard-card">
+
+            <Label text="Admin Dashboard" styleClass="title"/>
+
+            <Button text="View All Events"
+                    styleClass="dashboard-button"
+                    onAction="#handleViewEvents"/>
+
+            <Button text="View All Users"
+                    styleClass="dashboard-button"
+                    onAction="#handleViewUsers"/>
+
+            <Button text="Analytics"
+                    styleClass="dashboard-button"
+                    onAction="#handleViewAnalytics"/>
+
+            <Button text="Manage Flags / Reports"
+                    styleClass="dashboard-button"
+                    onAction="#handleViewFlags"/>
+
+            <Button text="Logout"
+                    styleClass="logout-button"
+                    onAction="#handleLogout"/>
+
+        </VBox>
+
+    </VBox>
+
+</StackPane>
