@@ -108,4 +108,29 @@ public class LoginController {
         alert.setContentText(msg);
         alert.show();
     }
+
+    @FXML
+    private void goToSignUp() {
+        try {
+            FXMLLoader loader = new FXMLLoader(
+                    getClass().getResource("/net/javaguids/popin/views/sign-up.fxml")
+            );
+
+            // Load FIRST so we know it works
+            Scene scene = new Scene(loader.load());
+
+            // Now we can close the current stage
+            Stage currentStage = (Stage) usernameField.getScene().getWindow();
+            currentStage.close();
+
+            // Open signup window
+            Stage signupStage = new Stage();
+            signupStage.setScene(scene);
+            signupStage.show();
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
 }

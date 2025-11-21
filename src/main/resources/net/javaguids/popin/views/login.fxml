@@ -26,6 +26,12 @@
             <Button text="Login"
                     onAction="#handleLogin"
                     styleClass="login-button"/>
+
+            <!-- NEW: hyperlink to Sign Up -->
+            <Hyperlink text="Don’t have an account yet? Sign Up"
+                       onAction="#goToSignUp"
+                       styleClass="link-text"/>
+
         </VBox>
     </VBox>
 
