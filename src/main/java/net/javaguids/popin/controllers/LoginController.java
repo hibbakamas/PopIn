@@ -108,4 +108,24 @@ public class LoginController {
         alert.setContentText(msg);
         alert.show();
     }
+
+    @FXML
+    private void goToSignUp() {
+        try {
+            Stage stage = (Stage) usernameField.getScene().getWindow();
+            stage.close();
+
+            var loader = new FXMLLoader(getClass().getResource(
+                    "/net/javaguids/popin/views/sign-up.fxml"
+            ));
+
+            Stage signupStage = new Stage();
+            signupStage.setScene(new Scene(loader.load()));
+            signupStage.show();
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
 }
