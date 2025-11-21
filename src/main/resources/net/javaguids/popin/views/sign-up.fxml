@@ -1,8 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
+<?import java.lang.String?>
+<?import javafx.collections.FXCollections?>
 
 <?import javafx.scene.layout.*?>
 <?import javafx.scene.control.*?>
 <?import javafx.geometry.*?>
+<?import javafx.collections.FXCollections?>
 
 <StackPane xmlns:fx="http://javafx.com/fxml"
            fx:controller="net.javaguids.popin.controllers.SignUpController"
@@ -16,15 +19,27 @@
 
             <TextField fx:id="usernameField"
                        promptText="Username"
-                       styleClass="text-field"/>
+                       styleClass="text-field"
+                       maxWidth="250"/>
 
             <PasswordField fx:id="passwordField"
                            promptText="Password"
-                           styleClass="password-field"/>
+                           styleClass="password-field"
+                           maxWidth="250"/>
 
-            <TextField fx:id="roleField"
-                       promptText="Role (admin / organizer / regular)"
-                       styleClass="text-field"/>
+            <!-- NEW: Dropdown for role -->
+            <ComboBox fx:id="roleComboBox"
+                      promptText="Select your role"
+                      maxWidth="250"
+                      styleClass="text-field">
+                <items>
+                    <FXCollections fx:factory="observableArrayList">
+                        <String fx:value="regular"/>
+                        <String fx:value="organizer"/>
+                        <String fx:value="admin"/>
+                    </FXCollections>
+                </items>
+            </ComboBox>
 
             <Label fx:id="errorLabel"
                    textFill="red"
@@ -33,9 +48,9 @@
 
             <Button text="Sign Up"
                     onAction="#handleSignUp"
-                    styleClass="login-button"/>
+                    styleClass="login-button"
+                    maxWidth="250"/>
 
-            <!-- NEW: hyperlink back to login -->
             <Hyperlink text="Already have an account? Log in"
                        onAction="#goToLogin"
                        styleClass="link-text"/>
