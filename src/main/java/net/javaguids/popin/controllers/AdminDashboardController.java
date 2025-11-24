@@ -23,19 +23,20 @@ public class AdminDashboardController {
 
     @FXML
     private void handleViewUsers() {
-        // TODO: open user management view
-        // openScene("/net/javaguids/popin/views/user-list.fxml", "Users");
-        System.out.println("OPEN USER LIST");
+        // NEW: open the admin user list screen
+        openScene("/net/javaguids/popin/views/user-list.fxml", "All Users");
     }
 
     @FXML
     private void handleViewAnalytics() {
         System.out.println("OPEN ANALYTICS");
+        // later: open analytics.fxml
     }
 
     @FXML
     private void handleViewFlags() {
         System.out.println("OPEN FLAGGED EVENTS");
+        // later: open flags view
     }
 
     @FXML
