@@ -17,37 +17,35 @@ public class EventDAO {
         createTableIfNotExists();
     }
 
-    // TABLE CREATION
+    // ---------------- TABLE CREATION ----------------
     private void createTableIfNotExists() {
         String sql = """
-                CREATE TABLE IF NOT EXISTS events (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    title TEXT NOT NULL,
-                    description TEXT,
-                    date_time TEXT NOT NULL,
-                    venue TEXT NOT NULL,
-                    capacity INTEGER NOT NULL,
-                    organizer_id INTEGER NOT NULL,
-                    price REAL
-                );
-                """;
+            CREATE TABLE IF NOT EXISTS events (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                title TEXT NOT NULL,
+                description TEXT,
+                date_time TEXT NOT NULL,
+                venue TEXT NOT NULL,
+                capacity INTEGER NOT NULL,
+                organizer_id INTEGER NOT NULL,
+                price REAL
+            );
+        """;
 
         try (Connection conn = Database.getConnection();
              Statement stmt = conn.createStatement()) {
-
             stmt.execute(sql);
-
         } catch (SQLException e) {
             e.printStackTrace();
         }
     }
 
-    // INSERT EVENT
+    // ---------------- CREATE EVENT ----------------
     public boolean createEvent(Event event) {
         String sql = """
-                INSERT INTO events (title, description, date_time, venue, capacity, organizer_id, price)
-                VALUES (?, ?, ?, ?, ?, ?, ?);
-                """;
+            INSERT INTO events (title, description, date_time, venue, capacity, organizer_id, price)
+            VALUES (?, ?, ?, ?, ?, ?, ?);
+        """;
 
         try (Connection conn = Database.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
@@ -65,7 +63,9 @@ public class EventDAO {
                 stmt.setNull(7, Types.REAL);
             }
 
-            return stmt.executeUpdate() > 0;
+            int rows = stmt.executeUpdate();
+            System.out.println("[EventDAO] createEvent → " + rows + " row(s) added.");
+            return rows > 0;
 
         } catch (SQLException e) {
             e.printStackTrace();
@@ -73,37 +73,64 @@ public class EventDAO {
         }
     }
 
-    // LIST UPCOMING EVENTS
-    public List<Event> findAllUpcoming() {
-        List<Event> events = new ArrayList<>();
+    // ---------------- UPDATE EVENT ----------------
+    public boolean updateEvent(Event event, Double price) {
         String sql = """
-                SELECT * FROM events
-                WHERE datetime(date_time) > datetime('now')
-                ORDER BY datetime(date_time) ASC;
-                """;
+            UPDATE events
+            SET title = ?, description = ?, date_time = ?, venue = ?, capacity = ?, organizer_id = ?, price = ?
+            WHERE id = ?;
+        """;
 
         try (Connection conn = Database.getConnection();
-             PreparedStatement stmt = conn.prepareStatement(sql);
-             ResultSet rs = stmt.executeQuery()) {
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
 
-            while (rs.next()) {
-                events.add(mapRowToEvent(rs));
+            stmt.setString(1, event.getTitle());
+            stmt.setString(2, event.getDescription());
+            stmt.setString(3, event.getDateTime().format(FORMATTER));
+            stmt.setString(4, event.getVenue());
+            stmt.setInt(5, event.getCapacity());
+            stmt.setInt(6, event.getOrganizerId());
+
+            if (price != null) {
+                stmt.setDouble(7, price);
+            } else {
+                stmt.setNull(7, Types.REAL);
             }
+
+            stmt.setInt(8, event.getId());
+
+            int rows = stmt.executeUpdate();
+            System.out.println("[EventDAO] updateEvent rows = " + rows + " for id = " + event.getId());
+            return rows > 0;
 
         } catch (SQLException e) {
             e.printStackTrace();
+            return false;
         }
-
-        return events;
     }
 
-    // LIST ALL EVENTS (for admin overview)
+    // ---------------- DELETE EVENT ----------------
+    public boolean deleteEvent(int id) {
+        String sql = "DELETE FROM events WHERE id = ?";
+
+        try (Connection conn = Database.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+
+            stmt.setInt(1, id);
+            int rows = stmt.executeUpdate();
+            System.out.println("[EventDAO] deleteEvent rows = " + rows + " for id = " + id);
+            return rows > 0;
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
+
+    // ---------------- FIND EVENTS ----------------
     public List<Event> findAll() {
         List<Event> events = new ArrayList<>();
-        String sql = """
-                SELECT * FROM events
-                ORDER BY datetime(date_time) DESC;
-                """;
+        String sql = "SELECT * FROM events ORDER BY datetime(date_time) DESC;";
 
         try (Connection conn = Database.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql);
@@ -120,20 +147,33 @@ public class EventDAO {
         return events;
     }
 
-    // FIND EVENTS BY ORGANIZER (for "My Events")
+    public List<Event> findAllUpcoming() {
+        List<Event> events = new ArrayList<>();
+        String sql = "SELECT * FROM events WHERE datetime(date_time) > datetime('now') ORDER BY datetime(date_time) ASC;";
+
+        try (Connection conn = Database.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql);
+             ResultSet rs = stmt.executeQuery()) {
+
+            while (rs.next()) {
+                events.add(mapRowToEvent(rs));
+            }
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+
+        return events;
+    }
+
     public List<Event> findByOrganizerId(int organizerId) {
         List<Event> events = new ArrayList<>();
-        String sql = """
-                SELECT * FROM events
-                WHERE organizer_id = ?
-                ORDER BY datetime(date_time) DESC;
-                """;
+        String sql = "SELECT * FROM events WHERE organizer_id = ? ORDER BY datetime(date_time) DESC;";
 
         try (Connection conn = Database.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
 
             stmt.setInt(1, organizerId);
-
             try (ResultSet rs = stmt.executeQuery()) {
                 while (rs.next()) {
                     events.add(mapRowToEvent(rs));
@@ -147,24 +187,7 @@ public class EventDAO {
         return events;
     }
 
-    // DELETE EVENT BY ID
-    public boolean deleteEvent(int id) {
-        String sql = "DELETE FROM events WHERE id = ?";
-
-        try (Connection conn = Database.getConnection();
-             PreparedStatement stmt = conn.prepareStatement(sql)) {
-
-            stmt.setInt(1, id);
-            int rows = stmt.executeUpdate();
-            return rows > 0;
-
-        } catch (SQLException e) {
-            e.printStackTrace();
-            return false;
-        }
-    }
-
-    // RESULTSET → EVENT
+    // ---------------- MAP ROW TO EVENT ----------------
     private Event mapRowToEvent(ResultSet rs) throws SQLException {
         int id = rs.getInt("id");
         String title = rs.getString("title");
@@ -176,13 +199,13 @@ public class EventDAO {
         double price = rs.getDouble("price");
 
         LocalDateTime dateTime = LocalDateTime.parse(dateString, FORMATTER);
+        boolean hasPrice = !rs.wasNull();
 
-        // price present → PaidEvent
-        if (!rs.wasNull()) {
-            return new PaidEvent(title, description, dateTime, venue, capacity, organizerId, price);
+        if (hasPrice) {
+            // include ID for PaidEvent
+            return new PaidEvent(id, title, description, dateTime, venue, capacity, organizerId, price);
         }
 
-        // Free event
         return new Event(id, title, description, dateTime, venue, capacity, organizerId);
     }
 }

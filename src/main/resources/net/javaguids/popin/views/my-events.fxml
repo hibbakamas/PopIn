@@ -25,7 +25,8 @@
 
     <bottom>
         <HBox spacing="10" alignment="CENTER_RIGHT" style="-fx-padding: 10;">
-            <Button text="Cancel Selected" onAction="#handleCancelEvent"/>
+            <Button text="Edit Selected" onAction="#handleEditEvent"/>
+            <Button text="Delete Selected" onAction="#handleDeleteEvent"/>
             <Button text="View Guest List" onAction="#handleViewGuestList"/>
             <Button text="Close" onAction="#handleClose"/>
         </HBox>
