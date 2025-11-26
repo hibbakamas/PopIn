@@ -1,34 +1,46 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
+<?import javafx.geometry.Insets?>
 <?import javafx.scene.control.*?>
 <?import javafx.scene.layout.*?>
 
 <BorderPane xmlns="http://javafx.com/javafx"
             xmlns:fx="http://javafx.com/fxml"
-            fx:controller="net.javaguids.popin.controllers.AdminEventListController">
-
-    <top>
-        <Label text="All Events (Admin Overview)"
-               style="-fx-font-size: 18; -fx-padding: 10; -fx-font-weight: bold;"/>
-    </top>
+            fx:controller="net.javaguids.popin.controllers.CreateEventController">
 
     <center>
-        <TableView fx:id="eventTable" prefHeight="300">
-            <columns>
-                <TableColumn fx:id="idColumn" text="ID" prefWidth="60"/>
-                <TableColumn fx:id="titleColumn" text="Title" prefWidth="180"/>
-                <TableColumn fx:id="organizerColumn" text="Organizer" prefWidth="160"/>
-                <TableColumn fx:id="dateColumn" text="Date and Time" prefWidth="160"/>
-                <TableColumn fx:id="capacityColumn" text="Capacity" prefWidth="100"/>
-            </columns>
-        </TableView>
-    </center>
+        <VBox spacing="10" alignment="TOP_LEFT" style="-fx-padding: 20;">
+            <Label text="Create Event"
+                   style="-fx-font-size: 18; -fx-font-weight: bold;"/>
 
-    <bottom>
-        <HBox spacing="10" alignment="CENTER_RIGHT" style="-fx-padding: 10;">
-            <Button text="Delete Selected Event" onAction="#handleDeleteEvent"/>
-            <Button text="Close" onAction="#handleClose"/>
-        </HBox>
-    </bottom>
+            <Label text="Title"/>
+            <TextField fx:id="titleField" promptText="Event title"/>
+
+            <Label text="Description"/>
+            <TextArea fx:id="descriptionArea"
+                      promptText="Event description"
+                      prefRowCount="3"/>
+
+            <Label text="Date"/>
+            <DatePicker fx:id="datePicker"/>
+
+            <Label text="Time (HH:mm)"/>
+            <TextField fx:id="timeField" promptText="18:30"/>
+
+            <Label text="Venue"/>
+            <TextField fx:id="venueField" promptText="Location"/>
+
+            <Label text="Capacity"/>
+            <TextField fx:id="capacityField" promptText="e.g. 100"/>
+
+            <Label text="Price (optional)"/>
+            <TextField fx:id="priceField" promptText="e.g. 9.99"/>
+
+            <HBox spacing="10" alignment="CENTER_RIGHT" style="-fx-padding: 10 0 0 0;">
+                <!-- IMPORTANT: this calls CreateEventController.handleCreateEvent -->
+                <Button text="Create" onAction="#handleCreateEvent"/>
+            </HBox>
+        </VBox>
+    </center>
 
 </BorderPane>

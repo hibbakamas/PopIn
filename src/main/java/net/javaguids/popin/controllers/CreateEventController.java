@@ -14,15 +14,15 @@ public class CreateEventController {
     @FXML private TextField titleField;
     @FXML private TextArea descriptionArea;
     @FXML private DatePicker datePicker;
-    @FXML private TextField timeField;   // expects "HH:mm"
+    @FXML private TextField timeField;        // expects "HH:mm"
     @FXML private TextField venueField;
     @FXML private TextField capacityField;
-    @FXML private TextField priceField;  // optional
+    @FXML private TextField priceField;       // optional
 
     private final EventService eventService = new EventService();
-    private User loggedInUser; // set from LoginController
+    private User loggedInUser; // set from OrganizerDashboardController
 
-    // Called by parent controller after login
+    // Called by OrganizerDashboardController after loading FXML
     public void setLoggedInUser(User user) {
         this.loggedInUser = user;
     }
@@ -37,13 +37,13 @@ public class CreateEventController {
             // Capacity
             int capacity = Integer.parseInt(capacityField.getText());
 
-            // Date + Time parsing
+            // Date + Time
             if (datePicker.getValue() == null || timeField.getText().isBlank()) {
                 showError("Please select a date and enter a valid time (HH:mm).");
                 return;
             }
 
-            LocalTime time = LocalTime.parse(timeField.getText()); // HH:mm
+            LocalTime time = LocalTime.parse(timeField.getText()); // "HH:mm"
             LocalDateTime dateTime = datePicker.getValue().atTime(time);
 
             // Price (optional)
@@ -52,7 +52,11 @@ public class CreateEventController {
                 price = Double.parseDouble(priceField.getText());
             }
 
-            // Organizer ID from logged-in user
+            if (loggedInUser == null) {
+                showError("Logged-in user is missing (organizerId).");
+                return;
+            }
+
             int organizerId = loggedInUser.getId();
 
             boolean success = eventService.createEvent(
@@ -73,11 +77,12 @@ public class CreateEventController {
             }
 
         } catch (Exception e) {
-            showError(e.getMessage());
+            e.printStackTrace();
+            showError("Error: " + e.getMessage());
         }
     }
 
-    // UI HELPERS
+    // UI helpers
     private void showError(String msg) {
         Alert alert = new Alert(Alert.AlertType.ERROR);
         alert.setHeaderText("Error");

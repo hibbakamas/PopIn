@@ -1,33 +1,32 @@
 <?xml version="1.0" encoding="UTF-8"?>
-
 <?import javafx.scene.control.*?>
 <?import javafx.scene.layout.*?>
 
 <BorderPane xmlns="http://javafx.com/javafx"
             xmlns:fx="http://javafx.com/fxml"
-            fx:controller="net.javaguids.popin.controllers.AdminEventListController">
+            fx:controller="net.javaguids.popin.controllers.MyEventsController">
 
     <top>
-        <Label text="All Events (Admin Overview)"
+        <Label text="My Events"
                style="-fx-font-size: 18; -fx-padding: 10; -fx-font-weight: bold;"/>
     </top>
 
     <center>
         <TableView fx:id="eventTable" prefHeight="300">
             <columns>
-                <TableColumn fx:id="idColumn" text="ID" prefWidth="60"/>
                 <TableColumn fx:id="titleColumn" text="Title" prefWidth="200"/>
-                <TableColumn fx:id="dateColumn" text="Date &amp; Time" prefWidth="180"/>
-                <TableColumn fx:id="venueColumn" text="Venue" prefWidth="160"/>
-                <TableColumn fx:id="capacityColumn" text="Capacity" prefWidth="90"/>
-                <TableColumn fx:id="organizerIdColumn" text="Organizer ID" prefWidth="110"/>
+                <TableColumn fx:id="dateColumn" text="Date &amp; Time" prefWidth="160"/>
+                <TableColumn fx:id="venueColumn" text="Venue" prefWidth="140"/>
+                <TableColumn fx:id="capacityColumn" text="Capacity" prefWidth="80"/>
+                <TableColumn fx:id="goingColumn" text="# Going" prefWidth="70"/>
             </columns>
         </TableView>
     </center>
 
     <bottom>
         <HBox spacing="10" alignment="CENTER_RIGHT" style="-fx-padding: 10;">
-            <Button text="Delete Selected Event" onAction="#handleDeleteEvent"/>
+            <Button text="Cancel Selected" onAction="#handleCancelEvent"/>
+            <Button text="View Guest List" onAction="#handleViewGuestList"/>
             <Button text="Close" onAction="#handleClose"/>
         </HBox>
     </bottom>
