@@ -5,41 +5,38 @@ import javafx.beans.property.SimpleStringProperty;
 import javafx.fxml.FXML;
 import javafx.scene.control.*;
 import javafx.stage.Stage;
+import net.javaguids.popin.database.AttendanceDAO;
 import net.javaguids.popin.database.EventDAO;
 import net.javaguids.popin.models.Event;
+import net.javaguids.popin.models.User;
 
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 
-public class AdminEventListController {
+public class MyEventsController {
 
     @FXML private TableView<Event> eventTable;
-    @FXML private TableColumn<Event, Number> idColumn;
     @FXML private TableColumn<Event, String> titleColumn;
     @FXML private TableColumn<Event, String> dateColumn;
     @FXML private TableColumn<Event, String> venueColumn;
     @FXML private TableColumn<Event, Number> capacityColumn;
-    @FXML private TableColumn<Event, Number> organizerIdColumn;
+    @FXML private TableColumn<Event, Number> goingColumn;
 
     private final EventDAO eventDAO = new EventDAO();
+    private final AttendanceDAO attendanceDAO = new AttendanceDAO();
     private final DateTimeFormatter formatter =
             DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
 
-    @FXML
-    public void initialize() {
-        // Guard so a miswired FXML won't crash everything
-        if (eventTable == null ||
-                idColumn == null ||
-                titleColumn == null ||
-                dateColumn == null ||
-                venueColumn == null ||
-                capacityColumn == null ||
-                organizerIdColumn == null) {
-            return;
-        }
+    private User loggedInUser;
 
-        idColumn.setCellValueFactory(c ->
-                new SimpleIntegerProperty(c.getValue().getId()));
+    public void setLoggedInUser(User user) {
+        this.loggedInUser = user;
+        initColumns();
+        loadEvents();
+    }
+
+    private void initColumns() {
+        if (titleColumn == null) return;
 
         titleColumn.setCellValueFactory(c ->
                 new SimpleStringProperty(c.getValue().getTitle()));
@@ -57,46 +54,59 @@ public class AdminEventListController {
         capacityColumn.setCellValueFactory(c ->
                 new SimpleIntegerProperty(c.getValue().getCapacity()));
 
-        organizerIdColumn.setCellValueFactory(c ->
-                new SimpleIntegerProperty(c.getValue().getOrganizerId()));
-
-        loadEvents();
+        goingColumn.setCellValueFactory(c ->
+                new SimpleIntegerProperty(
+                        attendanceDAO.countGoingByEventId(c.getValue().getId())
+                ));
     }
 
     private void loadEvents() {
-        List<Event> events = eventDAO.findAll();
+        if (loggedInUser == null) return;
+        List<Event> events = eventDAO.findByOrganizerId(loggedInUser.getId());
         eventTable.getItems().setAll(events);
     }
 
     @FXML
-    private void handleDeleteEvent() {
+    private void handleCancelEvent() {
         Event selected = eventTable.getSelectionModel().getSelectedItem();
         if (selected == null) {
-            showAlert(Alert.AlertType.WARNING,
-                    "No selection",
-                    "Please select an event to delete.");
+            showAlert(Alert.AlertType.WARNING, "No selection",
+                    "Select an event to cancel.");
             return;
         }
 
         Alert confirm = new Alert(Alert.AlertType.CONFIRMATION);
-        confirm.setTitle("Delete Event");
-        confirm.setHeaderText("Confirm delete");
-        confirm.setContentText("Delete event: \"" + selected.getTitle() + "\"?");
+        confirm.setHeaderText("Cancel event?");
+        confirm.setContentText("Are you sure you want to cancel: " + selected.getTitle() + "?");
         confirm.showAndWait().ifPresent(result -> {
             if (result.getButtonData() == ButtonBar.ButtonData.OK_DONE) {
                 boolean deleted = eventDAO.deleteEvent(selected.getId());
                 if (deleted) {
-                    showAlert(Alert.AlertType.INFORMATION,
-                            "Deleted",
-                            "Event deleted successfully.");
+                    showAlert(Alert.AlertType.INFORMATION, "Cancelled",
+                            "Event was cancelled.");
                     loadEvents();
                 } else {
-                    showAlert(Alert.AlertType.ERROR,
-                            "Error",
-                            "Could not delete the event.");
+                    showAlert(Alert.AlertType.ERROR, "Error",
+                            "Could not cancel event.");
                 }
             }
         });
+    }
+
+    @FXML
+    private void handleViewGuestList() {
+        Event selected = eventTable.getSelectionModel().getSelectedItem();
+        if (selected == null) {
+            showAlert(Alert.AlertType.WARNING, "No selection",
+                    "Select an event to view guests.");
+            return;
+        }
+
+        // later: open a guest-list window. For now just stub:
+        int goingCount = attendanceDAO.countGoingByEventId(selected.getId());
+        showAlert(Alert.AlertType.INFORMATION,
+                "Guest List",
+                "Number of users marked as 'Going': " + goingCount);
     }
 
     @FXML

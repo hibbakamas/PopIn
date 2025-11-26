@@ -20,21 +20,23 @@ public class EventDAO {
     // TABLE CREATION
     private void createTableIfNotExists() {
         String sql = """
-            CREATE TABLE IF NOT EXISTS events (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                title TEXT NOT NULL,
-                description TEXT,
-                date_time TEXT NOT NULL,
-                venue TEXT NOT NULL,
-                capacity INTEGER NOT NULL,
-                organizer_id INTEGER NOT NULL,
-                price REAL
-            );
-        """;
+                CREATE TABLE IF NOT EXISTS events (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    title TEXT NOT NULL,
+                    description TEXT,
+                    date_time TEXT NOT NULL,
+                    venue TEXT NOT NULL,
+                    capacity INTEGER NOT NULL,
+                    organizer_id INTEGER NOT NULL,
+                    price REAL
+                );
+                """;
 
         try (Connection conn = Database.getConnection();
              Statement stmt = conn.createStatement()) {
+
             stmt.execute(sql);
+
         } catch (SQLException e) {
             e.printStackTrace();
         }
@@ -43,10 +45,9 @@ public class EventDAO {
     // INSERT EVENT
     public boolean createEvent(Event event) {
         String sql = """
-            INSERT INTO events
-            (title, description, date_time, venue, capacity, organizer_id, price)
-            VALUES (?, ?, ?, ?, ?, ?, ?);
-        """;
+                INSERT INTO events (title, description, date_time, venue, capacity, organizer_id, price)
+                VALUES (?, ?, ?, ?, ?, ?, ?);
+                """;
 
         try (Connection conn = Database.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
@@ -72,15 +73,14 @@ public class EventDAO {
         }
     }
 
-    // LIST UPCOMING EVENTS (already existed)
+    // LIST UPCOMING EVENTS
     public List<Event> findAllUpcoming() {
         List<Event> events = new ArrayList<>();
-
         String sql = """
-            SELECT * FROM events
-            WHERE datetime(date_time) > datetime('now')
-            ORDER BY datetime(date_time) ASC;
-        """;
+                SELECT * FROM events
+                WHERE datetime(date_time) > datetime('now')
+                ORDER BY datetime(date_time) ASC;
+                """;
 
         try (Connection conn = Database.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql);
@@ -97,14 +97,13 @@ public class EventDAO {
         return events;
     }
 
-    // NEW: LIST ALL EVENTS (past + future) FOR ADMIN OVERVIEW
+    // LIST ALL EVENTS (for admin overview)
     public List<Event> findAll() {
         List<Event> events = new ArrayList<>();
-
         String sql = """
-            SELECT * FROM events
-            ORDER BY datetime(date_time) DESC;
-        """;
+                SELECT * FROM events
+                ORDER BY datetime(date_time) DESC;
+                """;
 
         try (Connection conn = Database.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql);
@@ -121,7 +120,34 @@ public class EventDAO {
         return events;
     }
 
-    // NEW: DELETE EVENT BY ID
+    // FIND EVENTS BY ORGANIZER (for "My Events")
+    public List<Event> findByOrganizerId(int organizerId) {
+        List<Event> events = new ArrayList<>();
+        String sql = """
+                SELECT * FROM events
+                WHERE organizer_id = ?
+                ORDER BY datetime(date_time) DESC;
+                """;
+
+        try (Connection conn = Database.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+
+            stmt.setInt(1, organizerId);
+
+            try (ResultSet rs = stmt.executeQuery()) {
+                while (rs.next()) {
+                    events.add(mapRowToEvent(rs));
+                }
+            }
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+
+        return events;
+    }
+
+    // DELETE EVENT BY ID
     public boolean deleteEvent(int id) {
         String sql = "DELETE FROM events WHERE id = ?";
 
