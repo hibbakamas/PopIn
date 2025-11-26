@@ -73,6 +73,7 @@ public class MyEventsController {
         eventTable.getItems().setAll(events);
     }
 
+    // -------- EDIT --------
     @FXML
     private void handleEditEvent() {
         Event selected = eventTable.getSelectionModel().getSelectedItem();
@@ -94,10 +95,20 @@ public class MyEventsController {
 
             Stage stage = new Stage();
             stage.setTitle("Edit Event");
-            stage.setScene(new Scene(root));
+            Scene scene = new Scene(root);
+
+            // apply global CSS for styling here too
+            try {
+                scene.getStylesheets().add(
+                        getClass().getResource("/net/javaguids/popin/styles/global.css")
+                                .toExternalForm()
+                );
+            } catch (Exception ignored) {}
+
+            stage.setScene(scene);
             stage.show();
 
-            // Optional: reload list when the edit window closes
+            // reload list when the edit window closes
             stage.setOnHiding(e -> loadEvents());
 
         } catch (IOException e) {
@@ -107,6 +118,7 @@ public class MyEventsController {
         }
     }
 
+    // -------- DELETE --------
     @FXML
     private void handleDeleteEvent() {
         Event selected = eventTable.getSelectionModel().getSelectedItem();
@@ -133,6 +145,58 @@ public class MyEventsController {
                 }
             }
         });
+    }
+
+    // -------- VIEW ATTENDEES --------
+    @FXML
+    private void handleViewAttendees() {
+        Event selected = eventTable.getSelectionModel().getSelectedItem();
+        if (selected == null) {
+            showAlert(Alert.AlertType.WARNING, "No selection",
+                    "Select an event to view its attendees.");
+            return;
+        }
+
+        int goingCount = attendanceDAO.countGoingByEventId(selected.getId());
+
+        // 🟡 If no one is going yet, show message instead of opening list
+        if (goingCount == 0) {
+            showAlert(Alert.AlertType.INFORMATION,
+                    "No Attendees",
+                    "No one has registered for this event yet.\n(0 attendees)");
+            return;
+        }
+
+        // 🟢 Otherwise open attendee list normally
+        try {
+            FXMLLoader loader = new FXMLLoader(
+                    getClass().getResource("/net/javaguids/popin/views/attendee-list.fxml")
+            );
+            Parent root = loader.load();
+
+            AttendeeListController controller = loader.getController();
+            controller.setEvent(selected);
+
+            Stage stage = new Stage();
+            stage.setTitle("Attendees – " + selected.getTitle());
+            Scene scene = new Scene(root);
+
+            // CSS
+            try {
+                scene.getStylesheets().add(
+                        getClass().getResource("/net/javaguids/popin/styles/global.css")
+                                .toExternalForm()
+                );
+            } catch (Exception ignored) {}
+
+            stage.setScene(scene);
+            stage.show();
+
+        } catch (IOException e) {
+            e.printStackTrace();
+            showAlert(Alert.AlertType.ERROR, "Error",
+                    "Could not open attendee list.");
+        }
     }
 
     @FXML
