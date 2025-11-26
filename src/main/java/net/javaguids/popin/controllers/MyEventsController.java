@@ -3,13 +3,18 @@ package net.javaguids.popin.controllers;
 import javafx.beans.property.SimpleIntegerProperty;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.fxml.FXML;
+import javafx.fxml.FXMLLoader;
+import javafx.scene.Parent;
+import javafx.scene.Scene;
 import javafx.scene.control.*;
 import javafx.stage.Stage;
 import net.javaguids.popin.database.AttendanceDAO;
 import net.javaguids.popin.database.EventDAO;
 import net.javaguids.popin.models.Event;
 import net.javaguids.popin.models.User;
+import net.javaguids.popin.services.EventService;
 
+import java.io.IOException;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 
@@ -24,6 +29,8 @@ public class MyEventsController {
 
     private final EventDAO eventDAO = new EventDAO();
     private final AttendanceDAO attendanceDAO = new AttendanceDAO();
+    private final EventService eventService = new EventService();
+
     private final DateTimeFormatter formatter =
             DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
 
@@ -67,27 +74,62 @@ public class MyEventsController {
     }
 
     @FXML
-    private void handleCancelEvent() {
+    private void handleEditEvent() {
         Event selected = eventTable.getSelectionModel().getSelectedItem();
         if (selected == null) {
             showAlert(Alert.AlertType.WARNING, "No selection",
-                    "Select an event to cancel.");
+                    "Select an event to edit.");
+            return;
+        }
+
+        try {
+            FXMLLoader loader = new FXMLLoader(
+                    getClass().getResource("/net/javaguids/popin/views/create-event.fxml")
+            );
+            Parent root = loader.load();
+
+            CreateEventController controller = loader.getController();
+            controller.setLoggedInUser(loggedInUser);
+            controller.setEventToEdit(selected);
+
+            Stage stage = new Stage();
+            stage.setTitle("Edit Event");
+            stage.setScene(new Scene(root));
+            stage.show();
+
+            // Optional: reload list when the edit window closes
+            stage.setOnHiding(e -> loadEvents());
+
+        } catch (IOException e) {
+            e.printStackTrace();
+            showAlert(Alert.AlertType.ERROR, "Error",
+                    "Could not open edit window.");
+        }
+    }
+
+    @FXML
+    private void handleDeleteEvent() {
+        Event selected = eventTable.getSelectionModel().getSelectedItem();
+        if (selected == null) {
+            showAlert(Alert.AlertType.WARNING, "No selection",
+                    "Select an event to delete.");
             return;
         }
 
         Alert confirm = new Alert(Alert.AlertType.CONFIRMATION);
-        confirm.setHeaderText("Cancel event?");
-        confirm.setContentText("Are you sure you want to cancel: " + selected.getTitle() + "?");
+        confirm.setHeaderText("Delete event?");
+        confirm.setContentText("Are you sure you want to delete: " + selected.getTitle() + "?");
+
         confirm.showAndWait().ifPresent(result -> {
             if (result.getButtonData() == ButtonBar.ButtonData.OK_DONE) {
-                boolean deleted = eventDAO.deleteEvent(selected.getId());
+                boolean deleted = eventService.deleteEvent(selected.getId());
                 if (deleted) {
-                    showAlert(Alert.AlertType.INFORMATION, "Cancelled",
-                            "Event was cancelled.");
+                    showAlert(Alert.AlertType.INFORMATION, "Deleted",
+                            "Event was deleted.");
                     loadEvents();
                 } else {
                     showAlert(Alert.AlertType.ERROR, "Error",
-                            "Could not cancel event.");
+                            "Could not delete event.");
                 }
             }
         });
@@ -102,7 +144,6 @@ public class MyEventsController {
             return;
         }
 
-        // later: open a guest-list window. For now just stub:
         int goingCount = attendanceDAO.countGoingByEventId(selected.getId());
         showAlert(Alert.AlertType.INFORMATION,
                 "Guest List",

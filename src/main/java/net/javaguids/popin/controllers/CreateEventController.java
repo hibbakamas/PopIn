@@ -3,6 +3,8 @@ package net.javaguids.popin.controllers;
 import javafx.fxml.FXML;
 import javafx.scene.control.*;
 import javafx.stage.Stage;
+import net.javaguids.popin.models.Event;
+import net.javaguids.popin.models.PaidEvent;
 import net.javaguids.popin.models.User;
 import net.javaguids.popin.services.EventService;
 
@@ -14,17 +16,42 @@ public class CreateEventController {
     @FXML private TextField titleField;
     @FXML private TextArea descriptionArea;
     @FXML private DatePicker datePicker;
-    @FXML private TextField timeField;        // expects "HH:mm"
+    @FXML private TextField timeField; // expects "HH:mm"
     @FXML private TextField venueField;
     @FXML private TextField capacityField;
-    @FXML private TextField priceField;       // optional
+    @FXML private TextField priceField; // optional
 
     private final EventService eventService = new EventService();
-    private User loggedInUser; // set from OrganizerDashboardController
 
-    // Called by OrganizerDashboardController after loading FXML
+    private User loggedInUser;      // organizer
+    private Event eventToEdit = null; // if non-null → edit mode
+
+    // Called by parent controller after login
     public void setLoggedInUser(User user) {
         this.loggedInUser = user;
+    }
+
+    // Called by MyEventsController when editing an existing event
+    public void setEventToEdit(Event event) {
+        this.eventToEdit = event;
+
+        // Prefill fields
+        titleField.setText(event.getTitle());
+        descriptionArea.setText(event.getDescription());
+        venueField.setText(event.getVenue());
+        capacityField.setText(String.valueOf(event.getCapacity()));
+
+        if (event.getDateTime() != null) {
+            datePicker.setValue(event.getDateTime().toLocalDate());
+            LocalTime t = event.getDateTime().toLocalTime();
+            timeField.setText(String.format("%02d:%02d", t.getHour(), t.getMinute()));
+        }
+
+        if (event instanceof PaidEvent paidEvent) {
+            priceField.setText(String.valueOf(paidEvent.getPrice()));
+        } else {
+            priceField.clear();
+        }
     }
 
     @FXML
@@ -37,13 +64,13 @@ public class CreateEventController {
             // Capacity
             int capacity = Integer.parseInt(capacityField.getText());
 
-            // Date + Time
+            // Date + Time parsing
             if (datePicker.getValue() == null || timeField.getText().isBlank()) {
                 showError("Please select a date and enter a valid time (HH:mm).");
                 return;
             }
 
-            LocalTime time = LocalTime.parse(timeField.getText()); // "HH:mm"
+            LocalTime time = LocalTime.parse(timeField.getText()); // HH:mm
             LocalDateTime dateTime = datePicker.getValue().atTime(time);
 
             // Price (optional)
@@ -53,27 +80,47 @@ public class CreateEventController {
             }
 
             if (loggedInUser == null) {
-                showError("Logged-in user is missing (organizerId).");
+                showError("Logged-in organizer information is missing.");
                 return;
             }
 
             int organizerId = loggedInUser.getId();
 
-            boolean success = eventService.createEvent(
-                    title,
-                    description,
-                    dateTime,
-                    venue,
-                    capacity,
-                    organizerId,
-                    price
-            );
+            boolean success;
+
+            if (eventToEdit == null) {
+                // CREATE NEW EVENT
+                success = eventService.createEvent(
+                        title,
+                        description,
+                        dateTime,
+                        venue,
+                        capacity,
+                        organizerId,
+                        price
+                );
+            } else {
+                // UPDATE EXISTING EVENT
+                Event updated = new Event(
+                        eventToEdit.getId(),
+                        title,
+                        description,
+                        dateTime,
+                        venue,
+                        capacity,
+                        eventToEdit.getOrganizerId()
+                );
+
+                success = eventService.updateEvent(updated, price);
+            }
 
             if (success) {
-                showSuccess("Event created successfully!");
+                showSuccess(eventToEdit == null
+                        ? "Event created successfully!"
+                        : "Event updated successfully!");
                 closeWindow();
             } else {
-                showError("Failed to create event. Please try again.");
+                showError("Failed to save event. Please try again.");
             }
 
         } catch (Exception e) {
@@ -82,7 +129,7 @@ public class CreateEventController {
         }
     }
 
-    // UI helpers
+    // UI HELPERS
     private void showError(String msg) {
         Alert alert = new Alert(Alert.AlertType.ERROR);
         alert.setHeaderText("Error");
