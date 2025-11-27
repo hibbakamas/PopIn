@@ -7,7 +7,9 @@ import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.scene.control.Alert;
+import javafx.scene.control.ListCell;
 import javafx.scene.control.ListView;
+import javafx.scene.control.TextField;
 import javafx.stage.Stage;
 import net.javaguids.popin.models.Event;
 import net.javaguids.popin.services.EventService;
@@ -17,36 +19,46 @@ import java.util.List;
 
 public class EventListController {
 
-    @FXML
-    private ListView<Event> eventListView;
+    @FXML private ListView<Event> eventListView;
+    @FXML private TextField searchField;
 
     private final EventService eventService = new EventService();
 
+    // Holds ALL events so we can filter them
+    private List<Event> fullEventList;
+
     @FXML
     public void initialize() {
-        loadUpcomingEvents();
+        loadEvents();
+
+        // Live search listener
+        searchField.textProperty().addListener((obs, oldV, newV) -> {
+            filterEvents(newV);
+        });
     }
 
-    private void loadUpcomingEvents() {
+    /** Load full event list */
+    private void loadEvents() {
         try {
-            List<Event> events = eventService.getUpcomingEvents();
-            ObservableList<Event> observableList = FXCollections.observableArrayList(events);
+            fullEventList = eventService.getUpcomingEvents();
+
+            ObservableList<Event> observableList = FXCollections.observableArrayList(fullEventList);
             eventListView.setItems(observableList);
 
-            // For display purposes: show title instead of Event.toString()
-            eventListView.setCellFactory(lv -> new javafx.scene.control.ListCell<>() {
+            // Cell formatting
+            eventListView.setCellFactory(lv -> new ListCell<>() {
                 @Override
                 protected void updateItem(Event event, boolean empty) {
                     super.updateItem(event, empty);
                     if (empty || event == null) {
                         setText(null);
                     } else {
-                        setText(event.getTitle() + " — " + event.getDateTime().toString());
+                        setText(event.getTitle() + " — " + event.getDateTime());
                     }
                 }
             });
 
-            // Open details when clicked
+            // Double‑click to open details
             eventListView.setOnMouseClicked(event -> {
                 if (event.getClickCount() == 2) {
                     Event selected = eventListView.getSelectionModel().getSelectedItem();
@@ -61,9 +73,28 @@ public class EventListController {
         }
     }
 
+    /** Filter events live by title */
+    private void filterEvents(String keyword) {
+        if (keyword == null || keyword.isBlank()) {
+            eventListView.setItems(FXCollections.observableArrayList(fullEventList));
+            return;
+        }
+
+        String lower = keyword.toLowerCase();
+
+        List<Event> filtered = fullEventList.stream()
+                .filter(event -> event.getTitle().toLowerCase().contains(lower))
+                .toList();
+
+        eventListView.setItems(FXCollections.observableArrayList(filtered));
+    }
+
+    /** Open event details window */
     private void openEventDetails(Event event) {
         try {
-            FXMLLoader loader = new FXMLLoader(getClass().getResource("/net/javaguids/popin/views/event-details.fxml"));
+            FXMLLoader loader = new FXMLLoader(getClass().getResource(
+                    "/net/javaguids/popin/views/event-details.fxml"
+            ));
             Parent root = loader.load();
 
             EventDetailsController controller = loader.getController();
@@ -73,13 +104,13 @@ public class EventListController {
             stage.setTitle("Event Details");
             stage.setScene(new Scene(root));
             stage.show();
-
         } catch (IOException e) {
             e.printStackTrace();
             showError("Could not open event details.");
         }
     }
 
+    /** Error display */
     private void showError(String msg) {
         Alert alert = new Alert(Alert.AlertType.ERROR);
         alert.setHeaderText("Error");
