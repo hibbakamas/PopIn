@@ -5,6 +5,7 @@ import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.scene.control.Alert;
+import javafx.scene.control.Label;
 import javafx.scene.control.PasswordField;
 import javafx.scene.control.TextField;
 import javafx.stage.Stage;
@@ -18,18 +19,43 @@ public class LoginController {
 
     @FXML private TextField usernameField;
     @FXML private PasswordField passwordField;
+    @FXML private Label errorLabel;   // 🔹 new: inline error
 
     private final AuthService authService = new AuthService();
 
     @FXML
+    private void initialize() {
+        if (errorLabel != null) {
+            errorLabel.setText("");
+            errorLabel.setVisible(false);
+        }
+    }
+
+    @FXML
     private void handleLogin() {
+        // clear old error
+        if (errorLabel != null) {
+            errorLabel.setText("");
+            errorLabel.setVisible(false);
+        }
+
         String username = usernameField.getText();
         String password = passwordField.getText();
+
+        // 🔹 prevent empty username/password
+        if (username == null || username.isBlank()) {
+            showInlineError("Username cannot be empty.");
+            return;
+        }
+        if (password == null || password.isBlank()) {
+            showInlineError("Password cannot be empty.");
+            return;
+        }
 
         Optional<User> userOpt = authService.login(username, password);
 
         if (userOpt.isEmpty()) {
-            showError("Invalid username or password.");
+            showInlineError("Invalid username or password.");
             return;
         }
 
@@ -41,17 +67,18 @@ public class LoginController {
                 case "ADMIN" -> openAdminDashboard(user);
                 case "ORGANIZER" -> openOrganizerDashboard(user);
                 case "ATTENDEE" -> openAttendeeDashboard(user);
-                default -> showError("Unknown role: " + roleName);
+                default -> showInlineError("Unknown role: " + roleName);
             }
         } catch (IOException e) {
             e.printStackTrace();
-            showError("Could not open dashboard.");
+            showInlineError("Could not open dashboard.");
         }
     }
 
     private void openAdminDashboard(User user) throws IOException {
         FXMLLoader loader = new FXMLLoader(
-                getClass().getResource("/net/javaguids/popin/views/admin-dashboard.fxml"));
+                getClass().getResource("/net/javaguids/popin/views/admin-dashboard.fxml")
+        );
         Parent root = loader.load();
 
         AdminDashboardController controller = loader.getController();
@@ -67,7 +94,8 @@ public class LoginController {
 
     private void openOrganizerDashboard(User user) throws IOException {
         FXMLLoader loader = new FXMLLoader(
-                getClass().getResource("/net/javaguids/popin/views/organizer-dashboard.fxml"));
+                getClass().getResource("/net/javaguids/popin/views/organizer-dashboard.fxml")
+        );
         Parent root = loader.load();
 
         OrganizerDashboardController controller = loader.getController();
@@ -83,7 +111,8 @@ public class LoginController {
 
     private void openAttendeeDashboard(User user) throws IOException {
         FXMLLoader loader = new FXMLLoader(
-                getClass().getResource("/net/javaguids/popin/views/attendee-dashboard.fxml"));
+                getClass().getResource("/net/javaguids/popin/views/attendee-dashboard.fxml")
+        );
         Parent root = loader.load();
 
         AttendeeDashboardController controller = loader.getController();
@@ -109,6 +138,16 @@ public class LoginController {
         alert.show();
     }
 
+    // 🔹 new helper: prefer label, fall back to alert if something is wrong
+    private void showInlineError(String msg) {
+        if (errorLabel != null) {
+            errorLabel.setText(msg);
+            errorLabel.setVisible(true);
+        } else {
+            showError(msg);
+        }
+    }
+
     @FXML
     private void goToSignUp() {
         try {
@@ -127,10 +166,8 @@ public class LoginController {
             Stage signupStage = new Stage();
             signupStage.setScene(scene);
             signupStage.show();
-
         } catch (Exception e) {
             e.printStackTrace();
         }
     }
-
 }

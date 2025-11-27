@@ -1,7 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <?import java.lang.String?>
 <?import javafx.collections.FXCollections?>
-
 <?import javafx.scene.layout.*?>
 <?import javafx.scene.control.*?>
 <?import javafx.geometry.*?>
@@ -27,7 +26,7 @@
                            styleClass="password-field"
                            maxWidth="250"/>
 
-            <!-- NEW: Dropdown for role -->
+            <!-- Dropdown for role -->
             <ComboBox fx:id="roleComboBox"
                       promptText="Select your role"
                       maxWidth="250"
@@ -46,7 +45,9 @@
                    wrapText="true"
                    style="-fx-padding: 0 10 0 10;"/>
 
-            <Button text="Sign Up"
+            <!-- 🔹 give this an fx:id so controller can disable it -->
+            <Button fx:id="signUpButton"
+                    text="Sign Up"
                     onAction="#handleSignUp"
                     styleClass="login-button"
                     maxWidth="250"/>
@@ -54,8 +55,6 @@
             <Hyperlink text="Already have an account? Log in"
                        onAction="#goToLogin"
                        styleClass="link-text"/>
-
         </VBox>
     </VBox>
-
 </StackPane>

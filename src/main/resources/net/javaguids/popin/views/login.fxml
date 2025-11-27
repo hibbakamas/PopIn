@@ -1,5 +1,4 @@
 <?xml version="1.0" encoding="UTF-8"?>
-
 <?import javafx.geometry.Insets?>
 <?import javafx.geometry.Pos?>
 <?import javafx.scene.control.*?>
@@ -23,16 +22,21 @@
                            promptText="Password"
                            styleClass="password-field"/>
 
+            <!-- 🔹 new inline error label -->
+            <Label fx:id="errorLabel"
+                   textFill="red"
+                   style="-fx-font-size: 11;"
+                   visible="false"
+                   wrapText="true"/>
+
             <Button text="Login"
                     onAction="#handleLogin"
                     styleClass="login-button"/>
 
-            <!-- NEW: hyperlink to Sign Up -->
+            <!-- hyperlink to Sign Up -->
             <Hyperlink text="Don’t have an account yet? Sign Up"
                        onAction="#goToSignUp"
                        styleClass="link-text"/>
-
         </VBox>
     </VBox>
-
 </StackPane>
