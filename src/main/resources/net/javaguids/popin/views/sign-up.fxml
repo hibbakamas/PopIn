@@ -34,7 +34,7 @@
                       styleClass="text-field">
                 <items>
                     <FXCollections fx:factory="observableArrayList">
-                        <String fx:value="regular"/>
+                        <String fx:value="attendee"/>
                         <String fx:value="organizer"/>
                         <String fx:value="admin"/>
                     </FXCollections>

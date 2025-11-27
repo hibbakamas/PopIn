@@ -1,16 +1,16 @@
 package net.javaguids.popin.models;
 
-public class Regular extends User {
+public class Attendee extends User {
 
-    public Regular() {
+    public Attendee() {
         setRole(new Role("ATTENDEE"));
     }
 
-    public Regular(int id, String username, String passwordHash) {
+    public Attendee(int id, String username, String passwordHash) {
         super(id, username, passwordHash, new Role("ATTENDEE"));
     }
 
-    public Regular(String username, String passwordHash) {
+    public Attendee(String username, String passwordHash) {
         super(username, passwordHash, new Role("ATTENDEE"));
     }
 }

@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+
+<BorderPane xmlns="http://javafx.com/javafx"
+            xmlns:fx="http://javafx.com/fxml"
+            fx:controller="net.javaguids.popin.controllers.MyRegistrationsController">
+
+    <top>
+        <Label text="My Registrations"
+               style="-fx-font-size: 20; -fx-padding: 10; -fx-font-weight: bold;"/>
+    </top>
+
+    <center>
+        <TableView fx:id="registrationTable" prefHeight="350">
+            <columns>
+                <TableColumn fx:id="titleColumn" text="Event Title" prefWidth="200"/>
+                <TableColumn fx:id="dateColumn" text="Date" prefWidth="150"/>
+                <TableColumn fx:id="venueColumn" text="Venue" prefWidth="150"/>
+            </columns>
+        </TableView>
+    </center>
+
+    <bottom>
+        <HBox alignment="CENTER_RIGHT" spacing="10" style="-fx-padding: 10;">
+            <Button text="Close" onAction="#handleClose"/>
+        </HBox>
+    </bottom>
+
+</BorderPane>
