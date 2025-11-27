@@ -10,6 +10,8 @@ import net.javaguids.popin.services.EventService;
 
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
 
 public class CreateEventController {
 
@@ -22,9 +24,11 @@ public class CreateEventController {
     @FXML private TextField priceField; // optional
 
     private final EventService eventService = new EventService();
-
     private User loggedInUser;      // organizer
     private Event eventToEdit = null; // if non-null → edit mode
+
+    private static final DateTimeFormatter TIME_FORMATTER =
+            DateTimeFormatter.ofPattern("HH:mm");
 
     // Called by parent controller after login
     public void setLoggedInUser(User user) {
@@ -57,37 +61,82 @@ public class CreateEventController {
     @FXML
     private void handleCreateEvent() {
         try {
-            String title = titleField.getText();
-            String description = descriptionArea.getText();
-            String venue = venueField.getText();
+            // ---------- BASIC TEXT FIELDS ----------
+            String title = safeTrim(titleField.getText());
+            String description = safeTrim(descriptionArea.getText());
+            String venue = safeTrim(venueField.getText());
 
-            // Capacity
-            int capacity = Integer.parseInt(capacityField.getText());
-
-            // Date + Time parsing
-            if (datePicker.getValue() == null || timeField.getText().isBlank()) {
-                showError("Please select a date and enter a valid time (HH:mm).");
+            if (title.isEmpty()) {
+                showError("Title cannot be blank.");
                 return;
             }
 
-            LocalTime time = LocalTime.parse(timeField.getText()); // HH:mm
-            LocalDateTime dateTime = datePicker.getValue().atTime(time);
-
-            // Price (optional)
-            Double price = null;
-            if (!priceField.getText().isBlank()) {
-                price = Double.parseDouble(priceField.getText());
+            if (venue.isEmpty()) {
+                showError("Venue cannot be blank.");
+                return;
             }
 
+            // ---------- CAPACITY ----------
+            int capacity;
+            try {
+                String capacityText = safeTrim(capacityField.getText());
+                capacity = Integer.parseInt(capacityText);
+                if (capacity <= 0) {
+                    showError("Capacity must be a positive whole number.");
+                    return;
+                }
+            } catch (NumberFormatException e) {
+                showError("Capacity must be a whole number.");
+                return;
+            }
+
+            // ---------- DATE & TIME ----------
+            if (datePicker.getValue() == null) {
+                showError("Please select a date for your event.");
+                return;
+            }
+
+            String timeText = safeTrim(timeField.getText());
+            if (timeText.isEmpty()) {
+                showError("Please enter a time in the format HH:mm.");
+                return;
+            }
+
+            LocalTime time;
+            try {
+                time = LocalTime.parse(timeText, TIME_FORMATTER); // HH:mm
+            } catch (DateTimeParseException e) {
+                showError("Time must be in format HH:mm.");
+                return;
+            }
+
+            LocalDateTime dateTime = datePicker.getValue().atTime(time);
+
+            // ---------- PRICE (OPTIONAL) ----------
+            Double price = null;
+            String priceText = safeTrim(priceField.getText());
+            if (!priceText.isEmpty()) {
+                try {
+                    price = Double.parseDouble(priceText);
+                    if (price < 0) {
+                        showError("Price must be a positive number, or leave it blank for a free event.");
+                        return;
+                    }
+                } catch (NumberFormatException e) {
+                    showError("Price must be a number, or leave it blank for free.");
+                    return;
+                }
+            }
+
+            // ---------- ORGANIZER ----------
             if (loggedInUser == null) {
                 showError("Logged-in organizer information is missing.");
                 return;
             }
-
             int organizerId = loggedInUser.getId();
 
+            // ---------- CREATE vs UPDATE ----------
             boolean success;
-
             if (eventToEdit == null) {
                 // CREATE NEW EVENT
                 success = eventService.createEvent(
@@ -110,7 +159,6 @@ public class CreateEventController {
                         capacity,
                         eventToEdit.getOrganizerId()
                 );
-
                 success = eventService.updateEvent(updated, price);
             }
 
@@ -124,15 +172,21 @@ public class CreateEventController {
             }
 
         } catch (Exception e) {
-            e.printStackTrace();
-            showError("Error: " + e.getMessage());
+            // No stack trace in UI; keep it friendly
+            // (you can log e somewhere if you want, but not required)
+            showError("An unexpected error occurred while saving the event.");
         }
     }
 
     // UI HELPERS
+
+    private String safeTrim(String value) {
+        return value == null ? "" : value.trim();
+    }
+
     private void showError(String msg) {
         Alert alert = new Alert(Alert.AlertType.ERROR);
-        alert.setHeaderText("Error");
+        alert.setHeaderText("Invalid event details");
         alert.setContentText(msg);
         alert.show();
     }
