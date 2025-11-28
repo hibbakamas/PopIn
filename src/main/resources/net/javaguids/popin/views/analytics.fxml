@@ -1,33 +1,44 @@
 <?xml version="1.0" encoding="UTF-8"?>
-
 <?import javafx.scene.control.*?>
 <?import javafx.scene.layout.*?>
 
 <VBox xmlns="http://javafx.com/javafx"
       xmlns:fx="http://javafx.com/fxml"
       fx:controller="net.javaguids.popin.controllers.AnalyticsController"
-      spacing="15"
+      spacing="25"
       alignment="CENTER"
       stylesheets="@../styles.css"
-      style="-fx-padding: 20;">
+      style="-fx-padding: 30;">
 
+    <!-- Title -->
     <Label text="Platform Analytics" styleClass="title"/>
 
-    <VBox spacing="10" alignment="CENTER_LEFT" styleClass="dashboard-card">
-
+    <!-- TOP: basic totals -->
+    <VBox spacing="10" alignment="CENTER_LEFT" styleClass="dashboard-card" prefWidth="350">
         <Label fx:id="totalUsersLabel"
-               text="Total users: 0"
-               styleClass="subtitle"/>
-
+               text="Total users: -"
+               style="-fx-font-size: 14px; -fx-text-fill: #c8a2ff;" />
         <Label fx:id="totalEventsLabel"
-               text="Total events: 0"/>
-
+               text="Total events: -"
+               style="-fx-font-size: 14px; -fx-text-fill: #c8a2ff;" />
         <Label fx:id="totalRegistrationsLabel"
-               text="Total registrations: 0"/>
+               text="Total registrations: -"
+               style="-fx-font-size: 14px; -fx-text-fill: #c8a2ff;" />
     </VBox>
 
-    <Button text="Close"
-            onAction="#handleClose"
-            styleClass="dashboard-button"/>
+    <!-- MIDDLE: advanced stats -->
+    <VBox spacing="10" alignment="CENTER_LEFT" styleClass="dashboard-card" prefWidth="350">
+        <Label fx:id="mostActiveOrganizerLabel"
+               text="Most active organizer: -"
+               style="-fx-font-size: 14px; -fx-text-fill: #c8a2ff;" />
+        <Label fx:id="avgPriceLabel"
+               text="Average ticket price: -"
+               style="-fx-font-size: 14px; -fx-text-fill: #c8a2ff;" />
+        <Label fx:id="mostPopularEventLabel"
+               text="Most popular upcoming event: -"
+               style="-fx-font-size: 14px; -fx-text-fill: #c8a2ff;" />
+    </VBox>
 
+    <!-- Bottom: close button -->
+    <Button text="Close" onAction="#handleClose" styleClass="dashboard-button"/>
 </VBox>
