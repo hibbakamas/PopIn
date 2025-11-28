@@ -20,21 +20,23 @@ public class EventDAO {
     // ---------------- TABLE CREATION ----------------
     private void createTableIfNotExists() {
         String sql = """
-            CREATE TABLE IF NOT EXISTS events (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                title TEXT NOT NULL,
-                description TEXT,
-                date_time TEXT NOT NULL,
-                venue TEXT NOT NULL,
-                capacity INTEGER NOT NULL,
-                organizer_id INTEGER NOT NULL,
-                price REAL
-            );
-        """;
+                CREATE TABLE IF NOT EXISTS events (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    title TEXT NOT NULL,
+                    description TEXT,
+                    date_time TEXT NOT NULL,
+                    venue TEXT NOT NULL,
+                    capacity INTEGER NOT NULL,
+                    organizer_id INTEGER NOT NULL,
+                    price REAL
+                );
+                """;
 
         try (Connection conn = Database.getConnection();
              Statement stmt = conn.createStatement()) {
+
             stmt.execute(sql);
+
         } catch (SQLException e) {
             e.printStackTrace();
         }
@@ -43,9 +45,10 @@ public class EventDAO {
     // ---------------- CREATE EVENT ----------------
     public boolean createEvent(Event event) {
         String sql = """
-            INSERT INTO events (title, description, date_time, venue, capacity, organizer_id, price)
-            VALUES (?, ?, ?, ?, ?, ?, ?);
-        """;
+                INSERT INTO events
+                    (title, description, date_time, venue, capacity, organizer_id, price)
+                VALUES (?, ?, ?, ?, ?, ?, ?);
+                """;
 
         try (Connection conn = Database.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
@@ -76,10 +79,11 @@ public class EventDAO {
     // ---------------- UPDATE EVENT ----------------
     public boolean updateEvent(Event event, Double price) {
         String sql = """
-            UPDATE events
-            SET title = ?, description = ?, date_time = ?, venue = ?, capacity = ?, organizer_id = ?, price = ?
-            WHERE id = ?;
-        """;
+                UPDATE events
+                SET title = ?, description = ?, date_time = ?, venue = ?,
+                    capacity = ?, organizer_id = ?, price = ?
+                WHERE id = ?;
+                """;
 
         try (Connection conn = Database.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
@@ -149,7 +153,11 @@ public class EventDAO {
 
     public List<Event> findAllUpcoming() {
         List<Event> events = new ArrayList<>();
-        String sql = "SELECT * FROM events WHERE datetime(date_time) > datetime('now') ORDER BY datetime(date_time) ASC;";
+        String sql = """
+                SELECT * FROM events
+                WHERE datetime(date_time) > datetime('now')
+                ORDER BY datetime(date_time) ASC;
+                """;
 
         try (Connection conn = Database.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql);
@@ -168,12 +176,17 @@ public class EventDAO {
 
     public List<Event> findByOrganizerId(int organizerId) {
         List<Event> events = new ArrayList<>();
-        String sql = "SELECT * FROM events WHERE organizer_id = ? ORDER BY datetime(date_time) DESC;";
+        String sql = """
+                SELECT * FROM events
+                WHERE organizer_id = ?
+                ORDER BY datetime(date_time) DESC;
+                """;
 
         try (Connection conn = Database.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
 
             stmt.setInt(1, organizerId);
+
             try (ResultSet rs = stmt.executeQuery()) {
                 while (rs.next()) {
                     events.add(mapRowToEvent(rs));
@@ -185,6 +198,22 @@ public class EventDAO {
         }
 
         return events;
+    }
+
+    // ---------------- ANALYTICS: COUNT ALL ----------------
+    public int countAll() {
+        String sql = "SELECT COUNT(*) FROM events";
+
+        try (Connection conn = Database.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql);
+             ResultSet rs = stmt.executeQuery()) {
+
+            return rs.getInt(1);
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return 0;
+        }
     }
 
     // ---------------- MAP ROW TO EVENT ----------------
@@ -202,7 +231,6 @@ public class EventDAO {
         boolean hasPrice = !rs.wasNull();
 
         if (hasPrice) {
-            // include ID for PaidEvent
             return new PaidEvent(id, title, description, dateTime, venue, capacity, organizerId, price);
         }
 

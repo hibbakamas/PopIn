@@ -30,7 +30,6 @@ public class UserDAO {
 
                     Role role = new Role(roleName);
                     User user = new User(id, uname, passwordHash, role);
-
                     return Optional.of(user);
                 }
             }
@@ -93,11 +92,10 @@ public class UserDAO {
     }
 
     // ----------------------------------
-    // NEW: LIST ALL USERS (for admin user list)
+    // LIST ALL USERS (for admin user list)
     // ----------------------------------
     public List<User> listAll() {
         List<User> users = new ArrayList<>();
-
         String sql = "SELECT id, username, password_hash, role_name FROM users";
 
         try (Connection conn = Database.getConnection();
@@ -123,7 +121,25 @@ public class UserDAO {
     }
 
     // ----------------------------------
-    // NEW: DELETE USER BY ID (admin delete)
+    // ANALYTICS: COUNT ALL USERS
+    // ----------------------------------
+    public int countAll() {
+        String sql = "SELECT COUNT(*) FROM users";
+
+        try (Connection conn = Database.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql);
+             ResultSet rs = stmt.executeQuery()) {
+
+            return rs.getInt(1);
+
+        } catch (SQLException e) {
+            System.err.println("UserDAO.countAll error: " + e.getMessage());
+            return 0;
+        }
+    }
+
+    // ----------------------------------
+    // DELETE USER BY ID (admin delete)
     // ----------------------------------
     public boolean deleteById(int id) {
         String sql = "DELETE FROM users WHERE id = ?";
@@ -142,7 +158,7 @@ public class UserDAO {
     }
 
     // ----------------------------------
-    // NEW: UPDATE PASSWORD (for profile page)
+    // UPDATE PASSWORD (for profile page)
     // ----------------------------------
     public boolean updatePassword(int id, String newHash) {
         String sql = "UPDATE users SET password_hash = ? WHERE id = ?";
