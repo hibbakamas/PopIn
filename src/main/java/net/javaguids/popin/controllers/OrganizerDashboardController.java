@@ -22,12 +22,12 @@ public class OrganizerDashboardController {
     @FXML private Label welcomeLabel;
     @FXML private Label statsLabel;
 
-    // mini preview table
     @FXML private TableView<Event> myEventsTable;
     @FXML private TableColumn<Event, String> titleColumn;
     @FXML private TableColumn<Event, String> dateColumn;
 
     private User loggedInUser;
+
     private final EventDAO eventDAO = new EventDAO();
     private final DateTimeFormatter formatter =
             DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
@@ -36,7 +36,7 @@ public class OrganizerDashboardController {
         this.loggedInUser = user;
 
         if (welcomeLabel != null && user != null) {
-            welcomeLabel.setText("Welcome, organizer " + user.getUsername());
+            welcomeLabel.setText("Welcome, " + user.getUsername());
         }
 
         initTable();
@@ -45,7 +45,7 @@ public class OrganizerDashboardController {
     }
 
     private void initTable() {
-        if (myEventsTable == null || titleColumn == null || dateColumn == null) return;
+        if (myEventsTable == null) return;
 
         titleColumn.setCellValueFactory(c ->
                 new SimpleStringProperty(c.getValue().getTitle()));
@@ -69,48 +69,42 @@ public class OrganizerDashboardController {
         if (myEventsTable == null || loggedInUser == null) return;
 
         List<Event> events = eventDAO.findByOrganizerId(loggedInUser.getId());
-        // show first few
+
         if (events.size() > 5) {
             events = events.subList(0, 5);
         }
+
         myEventsTable.getItems().setAll(events);
     }
 
     @FXML
     private void handleOpenCreateEvent() {
-        try {
-            FXMLLoader loader = new FXMLLoader(
-                    getClass().getResource("/net/javaguids/popin/views/create-event.fxml")
-            );
-            Parent root = loader.load();
-
-            CreateEventController controller = loader.getController();
-            controller.setLoggedInUser(loggedInUser);
-
-            Stage stage = new Stage();
-            stage.setTitle("Create Event");
-            stage.setScene(new Scene(root));
-            stage.show();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+        openWindow("/net/javaguids/popin/views/create-event.fxml", "Create Event");
     }
 
     @FXML
     private void handleMyEvents() {
+        openWindow("/net/javaguids/popin/views/my-events.fxml", "My Events");
+    }
+
+    private void openWindow(String fxml, String title) {
         try {
-            FXMLLoader loader = new FXMLLoader(
-                    getClass().getResource("/net/javaguids/popin/views/my-events.fxml")
-            );
+            FXMLLoader loader = new FXMLLoader(getClass().getResource(fxml));
             Parent root = loader.load();
 
-            MyEventsController controller = loader.getController();
-            controller.setLoggedInUser(loggedInUser);
+            // Pass user to next controller when applicable
+            try {
+                Object controller = loader.getController();
+                controller.getClass()
+                        .getMethod("setLoggedInUser", User.class)
+                        .invoke(controller, loggedInUser);
+            } catch (Exception ignored) {}
 
             Stage stage = new Stage();
-            stage.setTitle("My Events");
+            stage.setTitle(title);
             stage.setScene(new Scene(root));
             stage.show();
+
         } catch (IOException e) {
             e.printStackTrace();
         }

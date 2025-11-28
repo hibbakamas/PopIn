@@ -1,44 +1,58 @@
 <?xml version="1.0" encoding="UTF-8"?>
+
 <?import javafx.scene.control.*?>
 <?import javafx.scene.layout.*?>
 
 <BorderPane xmlns="http://javafx.com/javafx"
             xmlns:fx="http://javafx.com/fxml"
-            fx:controller="net.javaguids.popin.controllers.OrganizerDashboardController">
+            fx:controller="net.javaguids.popin.controllers.OrganizerDashboardController"
+            stylesheets="@../styles.css">
 
+    <!-- TOP SECTION -->
     <top>
-        <VBox spacing="5" style="-fx-padding: 10;">
-            <Label fx:id="welcomeLabel"
-                   text="Welcome, organizer"
-                   style="-fx-font-size: 18; -fx-font-weight: bold;"/>
-
-            <Label fx:id="statsLabel"
-                   text="Loading your events..."
-                   style="-fx-font-size: 12; -fx-text-fill: #666666;"/>
+        <VBox spacing="10" alignment="CENTER" styleClass="dashboard-card">
+            <Label fx:id="welcomeLabel" text="Welcome, organizer" styleClass="title"/>
+            <Label fx:id="statsLabel" text="Loading your events..."
+                   style="-fx-text-fill: #d7b8ff; -fx-font-size: 13;" />
         </VBox>
     </top>
 
+    <!-- CENTER SECTION -->
     <center>
-        <VBox spacing="20" style="-fx-padding: 20;">
-            <!-- Actions -->
-            <HBox spacing="15" alignment="CENTER">
-                <Button text="Create Event" onAction="#handleOpenCreateEvent"/>
-                <Button text="My Events" onAction="#handleMyEvents"/>
-            </HBox>
+        <VBox spacing="20" alignment="TOP_CENTER" styleClass="dashboard-card">
 
-            <!-- Preview of upcoming events -->
-            <Label text="Your upcoming events:"
-                   style="-fx-font-size: 14; -fx-font-weight: bold;"/>
+            <!-- Buttons -->
+            <VBox spacing="12" alignment="CENTER">
+                <Button text="Create Event"
+                        onAction="#handleOpenCreateEvent"
+                        styleClass="dashboard-button"/>
+                <Button text="My Events"
+                        onAction="#handleMyEvents"
+                        styleClass="dashboard-button"/>
+            </VBox>
 
-            <TableView fx:id="myEventsTable" prefHeight="200">
+            <!-- Divider label -->
+            <Label text="Upcoming Events"
+                   styleClass="subtitle"
+                   style="-fx-padding: 10 0 0 0;"/>
+
+            <!-- Events Preview Table -->
+            <TableView fx:id="myEventsTable"
+                       prefHeight="220"
+                       styleClass="table-view">
+
                 <columns>
-                    <TableColumn fx:id="titleColumn" text="Title" prefWidth="220"/>
-                    <TableColumn fx:id="dateColumn" text="Date &amp; Time" prefWidth="180"/>
+                    <TableColumn fx:id="titleColumn"
+                                 text="Title"
+                                 prefWidth="240"/>
+                    <TableColumn fx:id="dateColumn"
+                                 text="Date &amp; Time"
+                                 prefWidth="200"/>
                 </columns>
             </TableView>
 
             <Label text="(Open 'My Events' to manage full list)"
-                   style="-fx-font-size: 11; -fx-text-fill: #777777;"/>
+                   style="-fx-text-fill: #9e9e9e; -fx-font-size: 11;"/>
         </VBox>
     </center>
 
