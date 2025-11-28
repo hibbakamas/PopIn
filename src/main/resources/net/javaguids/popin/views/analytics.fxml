@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+
+<VBox xmlns="http://javafx.com/javafx"
+      xmlns:fx="http://javafx.com/fxml"
+      fx:controller="net.javaguids.popin.controllers.AnalyticsController"
+      spacing="15"
+      alignment="CENTER"
+      stylesheets="@../styles.css"
+      style="-fx-padding: 20;">
+
+    <Label text="Platform Analytics" styleClass="title"/>
+
+    <VBox spacing="10" alignment="CENTER_LEFT" styleClass="dashboard-card">
+
+        <Label fx:id="totalUsersLabel"
+               text="Total users: 0"
+               styleClass="subtitle"/>
+
+        <Label fx:id="totalEventsLabel"
+               text="Total events: 0"/>
+
+        <Label fx:id="totalRegistrationsLabel"
+               text="Total registrations: 0"/>
+    </VBox>
+
+    <Button text="Close"
+            onAction="#handleClose"
+            styleClass="dashboard-button"/>
+
+</VBox>

@@ -23,6 +23,7 @@ public class AdminDashboardController {
                 "All Events (Admin)");
     }
 
+
     @FXML
     private void handleViewUsers() {
         System.out.println("Admin clicked: View All Users");
@@ -33,9 +34,20 @@ public class AdminDashboardController {
 
     @FXML
     private void handleViewAnalytics() {
-        System.out.println("Admin clicked: Analytics");
-        // later: open analytics.fxml
+        try {
+            FXMLLoader loader = new FXMLLoader(
+                    getClass().getResource("/net/javaguids/popin/views/analytics.fxml"));
+            Parent root = loader.load();
+
+            Stage stage = new Stage();
+            stage.setTitle("Analytics");
+            stage.setScene(new Scene(root));
+            stage.show();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
+
 
     @FXML
     private void handleViewFlags() {
