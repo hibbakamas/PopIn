@@ -21,7 +21,6 @@ public class OrganizerDashboardController {
 
     @FXML private Label welcomeLabel;
     @FXML private Label statsLabel;
-
     @FXML private TableView<Event> myEventsTable;
     @FXML private TableColumn<Event, String> titleColumn;
     @FXML private TableColumn<Event, String> dateColumn;
@@ -69,10 +68,7 @@ public class OrganizerDashboardController {
         if (myEventsTable == null || loggedInUser == null) return;
 
         List<Event> events = eventDAO.findByOrganizerId(loggedInUser.getId());
-
-        if (events.size() > 5) {
-            events = events.subList(0, 5);
-        }
+        if (events.size() > 5) events = events.subList(0, 5);
 
         myEventsTable.getItems().setAll(events);
     }
@@ -87,12 +83,19 @@ public class OrganizerDashboardController {
         openWindow("/net/javaguids/popin/views/my-events.fxml", "My Events");
     }
 
+    // NEW LOGOUT HANDLER
+    @FXML
+    private void handleLogout() {
+        openWindow("/net/javaguids/popin/views/login.fxml", "Login");
+        closeThisWindow();
+    }
+
     private void openWindow(String fxml, String title) {
         try {
             FXMLLoader loader = new FXMLLoader(getClass().getResource(fxml));
             Parent root = loader.load();
 
-            // Pass user to next controller when applicable
+            // pass loggedInUser to next controller if it supports it
             try {
                 Object controller = loader.getController();
                 controller.getClass()
@@ -108,5 +111,10 @@ public class OrganizerDashboardController {
         } catch (IOException e) {
             e.printStackTrace();
         }
+    }
+
+    private void closeThisWindow() {
+        Stage stage = (Stage) welcomeLabel.getScene().getWindow();
+        stage.close();
     }
 }

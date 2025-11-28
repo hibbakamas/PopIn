@@ -1,5 +1,4 @@
 <?xml version="1.0" encoding="UTF-8"?>
-
 <?import javafx.scene.control.*?>
 <?import javafx.scene.layout.*?>
 
@@ -12,7 +11,8 @@
     <top>
         <VBox spacing="10" alignment="CENTER" styleClass="dashboard-card">
             <Label fx:id="welcomeLabel" text="Welcome, organizer" styleClass="title"/>
-            <Label fx:id="statsLabel" text="Loading your events..."
+            <Label fx:id="statsLabel"
+                   text="Loading your events..."
                    style="-fx-text-fill: #d7b8ff; -fx-font-size: 13;" />
         </VBox>
     </top>
@@ -21,30 +21,35 @@
     <center>
         <VBox spacing="20" alignment="TOP_CENTER" styleClass="dashboard-card">
 
-            <!-- Buttons -->
+            <!-- MAIN ACTION BUTTONS -->
             <VBox spacing="12" alignment="CENTER">
                 <Button text="Create Event"
                         onAction="#handleOpenCreateEvent"
                         styleClass="dashboard-button"/>
+
                 <Button text="My Events"
                         onAction="#handleMyEvents"
                         styleClass="dashboard-button"/>
+
+                <!-- NEW: LOGOUT BUTTON -->
+                <Button text="Logout"
+                        onAction="#handleLogout"
+                        styleClass="logout-button"/>
             </VBox>
 
-            <!-- Divider label -->
             <Label text="Upcoming Events"
                    styleClass="subtitle"
                    style="-fx-padding: 10 0 0 0;"/>
 
-            <!-- Events Preview Table -->
+            <!-- TABLE PREVIEW -->
             <TableView fx:id="myEventsTable"
                        prefHeight="220"
                        styleClass="table-view">
-
                 <columns>
                     <TableColumn fx:id="titleColumn"
                                  text="Title"
                                  prefWidth="240"/>
+
                     <TableColumn fx:id="dateColumn"
                                  text="Date &amp; Time"
                                  prefWidth="200"/>
