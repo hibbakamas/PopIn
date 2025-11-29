@@ -21,6 +21,7 @@ public class OrganizerDashboardController {
 
     @FXML private Label welcomeLabel;
     @FXML private Label statsLabel;
+
     @FXML private TableView<Event> myEventsTable;
     @FXML private TableColumn<Event, String> titleColumn;
     @FXML private TableColumn<Event, String> dateColumn;
@@ -68,8 +69,9 @@ public class OrganizerDashboardController {
         if (myEventsTable == null || loggedInUser == null) return;
 
         List<Event> events = eventDAO.findByOrganizerId(loggedInUser.getId());
-        if (events.size() > 5) events = events.subList(0, 5);
-
+        if (events.size() > 5) {
+            events = events.subList(0, 5);
+        }
         myEventsTable.getItems().setAll(events);
     }
 
@@ -83,11 +85,25 @@ public class OrganizerDashboardController {
         openWindow("/net/javaguids/popin/views/my-events.fxml", "My Events");
     }
 
-    // NEW LOGOUT HANDLER
     @FXML
     private void handleLogout() {
-        openWindow("/net/javaguids/popin/views/login.fxml", "Login");
-        closeThisWindow();
+        // back to login
+        try {
+            FXMLLoader loader = new FXMLLoader(getClass().getResource(
+                    "/net/javaguids/popin/views/login.fxml"));
+            Parent root = loader.load();
+
+            Stage stage = new Stage();
+            stage.setTitle("PopIn – Login");
+            stage.setScene(new Scene(root));
+            stage.show();
+
+            // close current dashboard window
+            Stage current = (Stage) welcomeLabel.getScene().getWindow();
+            current.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
     private void openWindow(String fxml, String title) {
@@ -95,26 +111,28 @@ public class OrganizerDashboardController {
             FXMLLoader loader = new FXMLLoader(getClass().getResource(fxml));
             Parent root = loader.load();
 
-            // pass loggedInUser to next controller if it supports it
+            // Pass loggedInUser forward if target controller has setLoggedInUser(User)
             try {
                 Object controller = loader.getController();
                 controller.getClass()
                         .getMethod("setLoggedInUser", User.class)
                         .invoke(controller, loggedInUser);
-            } catch (Exception ignored) {}
+            } catch (Exception ignored) {
+            }
 
             Stage stage = new Stage();
             stage.setTitle(title);
             stage.setScene(new Scene(root));
-            stage.show();
 
+            // 🔥 KEY PART: when this child window closes, refresh dashboard
+            stage.setOnHidden(e -> {
+                updateStats();
+                loadMyEventsPreview();
+            });
+
+            stage.show();
         } catch (IOException e) {
             e.printStackTrace();
         }
-    }
-
-    private void closeThisWindow() {
-        Stage stage = (Stage) welcomeLabel.getScene().getWindow();
-        stage.close();
     }
 }

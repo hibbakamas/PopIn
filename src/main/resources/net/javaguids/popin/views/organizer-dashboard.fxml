@@ -1,4 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
+
 <?import javafx.scene.control.*?>
 <?import javafx.scene.layout.*?>
 
@@ -11,9 +12,8 @@
     <top>
         <VBox spacing="10" alignment="CENTER" styleClass="dashboard-card">
             <Label fx:id="welcomeLabel" text="Welcome, organizer" styleClass="title"/>
-            <Label fx:id="statsLabel"
-                   text="Loading your events..."
-                   style="-fx-text-fill: #d7b8ff; -fx-font-size: 13;" />
+            <Label fx:id="statsLabel" text="Loading your events..."
+                   styleClass="subtitle"/>
         </VBox>
     </top>
 
@@ -21,43 +21,25 @@
     <center>
         <VBox spacing="20" alignment="TOP_CENTER" styleClass="dashboard-card">
 
-            <!-- MAIN ACTION BUTTONS -->
+            <!-- Buttons -->
             <VBox spacing="12" alignment="CENTER">
-                <Button text="Create Event"
-                        onAction="#handleOpenCreateEvent"
-                        styleClass="dashboard-button"/>
-
-                <Button text="My Events"
-                        onAction="#handleMyEvents"
-                        styleClass="dashboard-button"/>
-
-                <!-- NEW: LOGOUT BUTTON -->
-                <Button text="Logout"
-                        onAction="#handleLogout"
-                        styleClass="logout-button"/>
+                <Button text="Create Event" onAction="#handleOpenCreateEvent" styleClass="dashboard-button"/>
+                <Button text="My Events" onAction="#handleMyEvents" styleClass="dashboard-button"/>
+                <Button text="Logout" onAction="#handleLogout" styleClass="logout-button"/>
             </VBox>
 
-            <Label text="Upcoming Events"
-                   styleClass="subtitle"
-                   style="-fx-padding: 10 0 0 0;"/>
+            <!-- Header -->
+            <Label text="Upcoming Events" styleClass="subtitle" style="-fx-padding: 10 0 0 0;"/>
 
-            <!-- TABLE PREVIEW -->
-            <TableView fx:id="myEventsTable"
-                       prefHeight="220"
-                       styleClass="table-view">
+            <!-- PURPLE TABLE -->
+            <TableView fx:id="myEventsTable" prefHeight="220" styleClass="table-view">
                 <columns>
-                    <TableColumn fx:id="titleColumn"
-                                 text="Title"
-                                 prefWidth="240"/>
-
-                    <TableColumn fx:id="dateColumn"
-                                 text="Date &amp; Time"
-                                 prefWidth="200"/>
+                    <TableColumn fx:id="titleColumn" text="Title" prefWidth="240"/>
+                    <TableColumn fx:id="dateColumn" text="Date &amp; Time" prefWidth="200"/>
                 </columns>
             </TableView>
 
-            <Label text="(Open 'My Events' to manage full list)"
-                   style="-fx-text-fill: #9e9e9e; -fx-font-size: 11;"/>
+            <Label text="(Open 'My Events' to manage full list)" style="-fx-text-fill: #9e9e9e; -fx-font-size: 11;"/>
         </VBox>
     </center>
 
