@@ -17,7 +17,26 @@ public class AttendeeDashboardController {
 
     @FXML
     private void handleBrowseEvents() {
-        openScene("/net/javaguids/popin/views/event-list.fxml", "Available Events");
+        if (loggedInUser == null) {
+            System.err.println("No logged-in user set for AttendeeDashboardController.");
+            return;
+        }
+
+        try {
+            FXMLLoader loader = new FXMLLoader(
+                    getClass().getResource("/net/javaguids/popin/views/event-list.fxml"));
+            Parent root = loader.load();
+
+            EventListController controller = loader.getController();
+            controller.setLoggedInUser(loggedInUser);
+
+            Stage stage = new Stage();
+            stage.setScene(new Scene(root));
+            stage.setTitle("Available Events");
+            stage.show();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 
     @FXML
@@ -26,11 +45,9 @@ public class AttendeeDashboardController {
             System.err.println("No logged-in user set for AttendeeDashboardController.");
             return;
         }
-
         try {
             FXMLLoader loader = new FXMLLoader(
-                    getClass().getResource("/net/javaguids/popin/views/my-registrations.fxml")
-            );
+                    getClass().getResource("/net/javaguids/popin/views/my-registrations.fxml"));
             Parent root = loader.load();
 
             MyRegistrationsController controller = loader.getController();
@@ -40,7 +57,6 @@ public class AttendeeDashboardController {
             stage.setTitle("My Registrations");
             stage.setScene(new Scene(root));
             stage.show();
-
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -49,6 +65,7 @@ public class AttendeeDashboardController {
     @FXML
     private void handleProfile() {
         System.out.println("OPEN ATTENDEE PROFILE");
+        // later: open attendee-profile.fxml here
     }
 
     @FXML

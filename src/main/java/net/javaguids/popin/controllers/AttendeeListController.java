@@ -8,6 +8,7 @@ import javafx.scene.control.ListView;
 import net.javaguids.popin.database.RegistrationDAO;
 import net.javaguids.popin.database.UserDAO;
 import net.javaguids.popin.models.Event;
+import net.javaguids.popin.models.Registration;
 import net.javaguids.popin.models.User;
 
 import java.util.ArrayList;
@@ -15,11 +16,11 @@ import java.util.List;
 
 public class AttendeeListController {
 
-    @FXML private ListView<String> attendeeListView;
+    @FXML
+    private ListView<String> attendeeListView;
 
     private final RegistrationDAO registrationDAO = new RegistrationDAO();
     private final UserDAO userDAO = new UserDAO();
-
     private Event event;
 
     public void setEvent(Event event) {
@@ -28,14 +29,26 @@ public class AttendeeListController {
     }
 
     private void loadAttendees() {
+        if (event == null) {
+            return;
+        }
+
         try {
-            List<Integer> userIds = registrationDAO.findUserIdsByEvent(event.getId());
+            List<Registration> allRegs = registrationDAO.listAll();
             List<String> usernames = new ArrayList<>();
 
-            for (int id : userIds) {
-                User user = userDAO.findById(id);
-                if (user != null) {
-                    usernames.add(user.getUsername());
+            for (Registration reg : allRegs) {
+                if (reg.getEventId() != event.getId()) continue;
+
+                String status = reg.getStatus();
+                if (!"REGISTERED".equalsIgnoreCase(status)
+                        && !"CHECKED_IN".equalsIgnoreCase(status)) {
+                    continue;
+                }
+
+                User u = userDAO.findById(reg.getUserId());
+                if (u != null) {
+                    usernames.add(u.getUsername());
                 }
             }
 
@@ -43,7 +56,8 @@ public class AttendeeListController {
             attendeeListView.setItems(list);
 
         } catch (Exception e) {
-            showError(e.getMessage());
+            e.printStackTrace();
+            showError("Could not load attendees: " + e.getMessage());
         }
     }
 
@@ -54,4 +68,3 @@ public class AttendeeListController {
         alert.show();
     }
 }
-
