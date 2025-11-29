@@ -165,3 +165,38 @@
     -fx-background-color: #7b2cff;
     -fx-text-fill: white;
 }
+
+/* ============================================
+   ADMIN TABLE STYLING — PURPLE TEXT + HIGHLIGHT
+   ============================================ */
+
+/* Table header text */
+.table-view .column-header .label {
+    -fx-text-fill: #d7b8ff;
+    -fx-font-size: 14px;
+}
+
+/* Table cell text */
+.table-view .table-row-cell .text {
+    -fx-fill: #d7b8ff; /* Purple text */
+}
+
+/* Background of each row (dark) */
+.table-row-cell {
+    -fx-background-color: #1e1e1e;
+}
+
+/* Even rows */
+.table-row-cell:even {
+    -fx-background-color: #1e1e1e;
+}
+
+/* Selected row highlight */
+.table-row-cell:selected {
+    -fx-background-color: #9d4edd !important; /* Purple highlight */
+}
+
+/* Selected cell text color */
+.table-row-cell:selected .text {
+    -fx-fill: black !important; /* readable on purple highlight */
+}
