@@ -8,8 +8,8 @@ import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
 import javafx.stage.Stage;
-import net.javaguids.popin.database.AttendanceDAO;
 import net.javaguids.popin.database.EventDAO;
+import net.javaguids.popin.database.RegistrationDAO;
 import net.javaguids.popin.models.Event;
 import net.javaguids.popin.models.User;
 import net.javaguids.popin.services.EventService;
@@ -28,7 +28,7 @@ public class MyEventsController {
     @FXML private TableColumn<Event, Number> goingColumn;
 
     private final EventDAO eventDAO = new EventDAO();
-    private final AttendanceDAO attendanceDAO = new AttendanceDAO();
+    private final RegistrationDAO registrationDAO = new RegistrationDAO();
     private final EventService eventService = new EventService();
 
     private final DateTimeFormatter formatter =
@@ -61,9 +61,10 @@ public class MyEventsController {
         capacityColumn.setCellValueFactory(c ->
                 new SimpleIntegerProperty(c.getValue().getCapacity()));
 
+        // how many registered for each event
         goingColumn.setCellValueFactory(c ->
                 new SimpleIntegerProperty(
-                        attendanceDAO.countGoingByEventId(c.getValue().getId())
+                        registrationDAO.countRegistered(c.getValue().getId())
                 ));
     }
 
@@ -82,11 +83,9 @@ public class MyEventsController {
                     "Select an event to edit.");
             return;
         }
-
         try {
             FXMLLoader loader = new FXMLLoader(
-                    getClass().getResource("/net/javaguids/popin/views/create-event.fxml")
-            );
+                    getClass().getResource("/net/javaguids/popin/views/create-event.fxml"));
             Parent root = loader.load();
 
             CreateEventController controller = loader.getController();
@@ -97,7 +96,6 @@ public class MyEventsController {
             stage.setTitle("Edit Event");
             Scene scene = new Scene(root);
 
-            // apply global CSS for styling here too
             try {
                 scene.getStylesheets().add(
                         getClass().getResource("/net/javaguids/popin/styles/global.css")
@@ -108,7 +106,6 @@ public class MyEventsController {
             stage.setScene(scene);
             stage.show();
 
-            // reload list when the edit window closes
             stage.setOnHiding(e -> loadEvents());
 
         } catch (IOException e) {
@@ -131,7 +128,6 @@ public class MyEventsController {
         Alert confirm = new Alert(Alert.AlertType.CONFIRMATION);
         confirm.setHeaderText("Delete event?");
         confirm.setContentText("Are you sure you want to delete: " + selected.getTitle() + "?");
-
         confirm.showAndWait().ifPresent(result -> {
             if (result.getButtonData() == ButtonBar.ButtonData.OK_DONE) {
                 boolean deleted = eventService.deleteEvent(selected.getId());
@@ -147,7 +143,7 @@ public class MyEventsController {
         });
     }
 
-    // -------- VIEW ATTENDEES --------
+    // -------- VIEW ATTENDEES (Organizer) --------
     @FXML
     private void handleViewAttendees() {
         Event selected = eventTable.getSelectionModel().getSelectedItem();
@@ -157,9 +153,7 @@ public class MyEventsController {
             return;
         }
 
-        int goingCount = attendanceDAO.countGoingByEventId(selected.getId());
-
-        // 🟡 If no one is going yet, show message instead of opening list
+        int goingCount = registrationDAO.countRegistered(selected.getId());
         if (goingCount == 0) {
             showAlert(Alert.AlertType.INFORMATION,
                     "No Attendees",
@@ -167,11 +161,9 @@ public class MyEventsController {
             return;
         }
 
-        // 🟢 Otherwise open attendee list normally
         try {
             FXMLLoader loader = new FXMLLoader(
-                    getClass().getResource("/net/javaguids/popin/views/attendee-list.fxml")
-            );
+                    getClass().getResource("/net/javaguids/popin/views/attendee-list.fxml"));
             Parent root = loader.load();
 
             AttendeeListController controller = loader.getController();
@@ -181,7 +173,6 @@ public class MyEventsController {
             stage.setTitle("Attendees – " + selected.getTitle());
             Scene scene = new Scene(root);
 
-            // CSS
             try {
                 scene.getStylesheets().add(
                         getClass().getResource("/net/javaguids/popin/styles/global.css")
@@ -199,6 +190,7 @@ public class MyEventsController {
         }
     }
 
+    // -------- VIEW GUEST COUNT --------
     @FXML
     private void handleViewGuestList() {
         Event selected = eventTable.getSelectionModel().getSelectedItem();
@@ -208,10 +200,10 @@ public class MyEventsController {
             return;
         }
 
-        int goingCount = attendanceDAO.countGoingByEventId(selected.getId());
+        int goingCount = registrationDAO.countRegistered(selected.getId());
         showAlert(Alert.AlertType.INFORMATION,
                 "Guest List",
-                "Number of users marked as 'Going': " + goingCount);
+                "Number of users registered: " + goingCount);
     }
 
     @FXML

@@ -1,11 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
-
 <?import javafx.geometry.Insets?>
 <?import javafx.geometry.Pos?>
 <?import javafx.scene.control.*?>
 <?import javafx.scene.layout.*?>
 
 <VBox spacing="10"
+      xmlns="http://javafx.com/javafx"
       xmlns:fx="http://javafx.com/fxml"
       fx:controller="net.javaguids.popin.controllers.EventListController"
       stylesheets="@../styles.css"
@@ -24,5 +24,12 @@
     <ListView fx:id="eventListView"
               prefHeight="450"
               style="-fx-background-insets: 0;"/>
+
+    <!-- REGISTER / UNREGISTER BUTTON -->
+    <Button fx:id="registerButton"
+            text="Select an event"
+            onAction="#handleToggleRegistration"
+            disable="true"
+            styleClass="dashboard-button"/>
 
 </VBox>
