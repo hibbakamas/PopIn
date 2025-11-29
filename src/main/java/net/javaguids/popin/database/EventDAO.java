@@ -76,6 +76,26 @@ public class EventDAO {
         }
     }
 
+    public int countRegistered(int eventId) {
+        String sql = """
+        SELECT COUNT(*) FROM registrations
+        WHERE event_id = ? AND status = 'REGISTERED';
+    """;
+
+        try (Connection conn = Database.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+
+            stmt.setInt(1, eventId);
+            ResultSet rs = stmt.executeQuery();
+            return rs.getInt(1);
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return 0;
+        }
+    }
+
+
     // ---------------- UPDATE EVENT ----------------
     public boolean updateEvent(Event event, Double price) {
         String sql = """
