@@ -1,12 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
-
 <?import javafx.scene.control.*?>
 <?import javafx.scene.layout.*?>
 
 <VBox xmlns="http://javafx.com/javafx"
       xmlns:fx="http://javafx.com/fxml"
       fx:controller="net.javaguids.popin.controllers.AdminDashboardController"
-      spacing="20" alignment="TOP_CENTER"
+      spacing="20"
+      alignment="TOP_CENTER"
       stylesheets="@../styles.css"
       style="-fx-padding: 30;">
 
@@ -15,23 +15,51 @@
 
     <!-- Buttons -->
     <VBox spacing="12" alignment="CENTER">
-        <Button text="View All Events" onAction="#handleViewAllEvents" styleClass="dashboard-button"/>
-        <Button text="View All Users" onAction="#handleViewAllUsers" styleClass="dashboard-button"/>
-        <Button text="Analytics" onAction="#handleAnalytics" styleClass="dashboard-button"/>
-        <Button text="Manage Flags / Reports" onAction="#handleManageReports" styleClass="dashboard-button"/>
-        <Button text="Logout" onAction="#handleLogout" styleClass="logout-button"/>
+        <Button text="View All Events"
+                onAction="#handleViewAllEvents"
+                styleClass="dashboard-button"/>
+        <Button text="View All Users"
+                onAction="#handleViewAllUsers"
+                styleClass="dashboard-button"/>
+        <Button text="Analytics"
+                onAction="#handleAnalytics"
+                styleClass="dashboard-button"/>
+        <Button text="Manage Flags / Reports"
+                onAction="#handleManageReports"
+                styleClass="dashboard-button"/>
+
+        <!-- NEW: Profile -->
+        <Button text="Profile"
+                onAction="#handleProfile"
+                styleClass="dashboard-button"/>
+
+        <Button text="Logout"
+                onAction="#handleLogout"
+                styleClass="logout-button"/>
     </VBox>
 
     <!-- Section Title -->
-    <Label text="All Events" styleClass="subtitle" style="-fx-padding: 10 0 0 0;"/>
+    <Label text="All Events"
+           styleClass="subtitle"
+           style="-fx-padding: 10 0 0 0;"/>
 
     <!-- Events Table -->
-    <TableView fx:id="eventsTable" prefHeight="300" styleClass="table-view">
+    <TableView fx:id="eventsTable"
+               prefHeight="300"
+               styleClass="table-view">
         <columns>
-            <TableColumn fx:id="colTitle" text="Title" prefWidth="150"/>
-            <TableColumn fx:id="colOrganizer" text="Organizer" prefWidth="120"/>
-            <TableColumn fx:id="colDate" text="Date &amp; Time" prefWidth="160"/>
-            <TableColumn fx:id="colRegistrations" text="Registrations" prefWidth="120"/>
+            <TableColumn fx:id="colTitle"
+                         text="Title"
+                         prefWidth="150"/>
+            <TableColumn fx:id="colOrganizer"
+                         text="Organizer"
+                         prefWidth="120"/>
+            <TableColumn fx:id="colDate"
+                         text="Date &amp; Time"
+                         prefWidth="160"/>
+            <TableColumn fx:id="colRegistrations"
+                         text="Registrations"
+                         prefWidth="120"/>
         </columns>
     </TableView>
 

@@ -11,6 +11,9 @@ public class AuthService {
 
     private final UserDAO userDAO = new UserDAO();
 
+    /**
+     * Attempt login with username and password.
+     */
     public Optional<User> login(String username, String plainPassword) {
         if (username == null || username.isBlank() ||
                 plainPassword == null || plainPassword.isBlank()) {
@@ -23,11 +26,13 @@ public class AuthService {
         }
 
         User user = userOpt.get();
-        boolean valid = PasswordHasher.verifyPassword(plainPassword, user.getPasswordHash());
-
+        boolean valid = PasswordHasher.matchPassword(plainPassword, user.getPasswordHash());
         return valid ? Optional.of(user) : Optional.empty();
     }
 
+    /**
+     * Register a new user with the given role.
+     */
     public boolean registerUser(String username, String plainPassword, String roleName) {
         if (username == null || username.isBlank()) return false;
         if (plainPassword == null || plainPassword.isBlank()) return false;
@@ -36,8 +41,8 @@ public class AuthService {
         String normalizedRole = roleName.trim().toUpperCase();
         Role role = new Role(normalizedRole);
         String hash = PasswordHasher.hashPassword(plainPassword);
-
         User user = new User(username, hash, role);
+
         return userDAO.createUser(user);
     }
 }

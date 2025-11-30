@@ -21,24 +21,20 @@ public class OrganizerDashboardController {
 
     @FXML private Label welcomeLabel;
     @FXML private Label statsLabel;
-
     @FXML private TableView<Event> myEventsTable;
     @FXML private TableColumn<Event, String> titleColumn;
     @FXML private TableColumn<Event, String> dateColumn;
 
     private User loggedInUser;
-
     private final EventDAO eventDAO = new EventDAO();
     private final DateTimeFormatter formatter =
             DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
 
     public void setLoggedInUser(User user) {
         this.loggedInUser = user;
-
         if (welcomeLabel != null && user != null) {
             welcomeLabel.setText("Welcome, " + user.getUsername());
         }
-
         initTable();
         updateStats();
         loadMyEventsPreview();
@@ -86,13 +82,18 @@ public class OrganizerDashboardController {
     }
 
     @FXML
+    private void handleProfile() {
+        // opens shared profile page, passes loggedInUser via openWindow()
+        openWindow("/net/javaguids/popin/views/profile.fxml", "My Profile");
+    }
+
+    @FXML
     private void handleLogout() {
         // back to login
         try {
-            FXMLLoader loader = new FXMLLoader(getClass().getResource(
-                    "/net/javaguids/popin/views/login.fxml"));
+            FXMLLoader loader = new FXMLLoader(
+                    getClass().getResource("/net/javaguids/popin/views/login.fxml"));
             Parent root = loader.load();
-
             Stage stage = new Stage();
             stage.setTitle("PopIn – Login");
             stage.setScene(new Scene(root));
@@ -117,14 +118,13 @@ public class OrganizerDashboardController {
                 controller.getClass()
                         .getMethod("setLoggedInUser", User.class)
                         .invoke(controller, loggedInUser);
-            } catch (Exception ignored) {
-            }
+            } catch (Exception ignored) {}
 
             Stage stage = new Stage();
             stage.setTitle(title);
             stage.setScene(new Scene(root));
 
-            // 🔥 KEY PART: when this child window closes, refresh dashboard
+            // when child window closes, refresh dashboard
             stage.setOnHidden(e -> {
                 updateStats();
                 loadMyEventsPreview();

@@ -1,0 +1,95 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<?import javafx.geometry.Pos?>
+
+<ScrollPane xmlns="http://javafx.com/javafx"
+            xmlns:fx="http://javafx.com/fxml"
+            fx:controller="net.javaguids.popin.controllers.ProfileController"
+            fitToWidth="true"
+            hbarPolicy="NEVER"
+            stylesheets="@../styles.css"
+            style="-fx-background: transparent;">
+
+    <content>
+        <VBox alignment="TOP_CENTER"
+              spacing="20"
+              style="-fx-padding: 20;">
+
+            <!-- Title -->
+            <Label text="My Profile" styleClass="title"/>
+
+            <!-- Account info -->
+            <VBox spacing="10"
+                  alignment="CENTER_LEFT"
+                  styleClass="dashboard-card"
+                  prefWidth="500">
+                <Label text="Account Information" styleClass="subtitle"/>
+                <Label fx:id="usernameLabel"
+                       text="Username: -"
+                       style="-fx-text-fill: #e6d5ff;"/>
+                <Label fx:id="roleLabel"
+                       text="Role: -"
+                       style="-fx-text-fill: #e6d5ff;"/>
+            </VBox>
+
+            <!-- Change username -->
+            <VBox spacing="12"
+                  alignment="CENTER"
+                  styleClass="dashboard-card"
+                  prefWidth="500">
+                <Label text="Change Username" styleClass="subtitle"/>
+
+                <TextField fx:id="newUsernameField"
+                           promptText="Enter new username"
+                           prefWidth="320"/>
+
+                <Button text="Save Username"
+                        onAction="#handleSaveUsername"
+                        styleClass="dashboard-button"/>
+            </VBox>
+
+            <!-- Change password -->
+            <VBox spacing="12"
+                  alignment="CENTER"
+                  styleClass="dashboard-card"
+                  prefWidth="500">
+                <Label text="Change Password" styleClass="subtitle"/>
+
+                <PasswordField fx:id="oldPasswordField"
+                               promptText="Old password"
+                               prefWidth="320"/>
+
+                <PasswordField fx:id="newPasswordField"
+                               promptText="New password"
+                               prefWidth="320"/>
+
+                <PasswordField fx:id="confirmPasswordField"
+                               promptText="Confirm new password"
+                               prefWidth="320"/>
+
+                <Button text="Save Password"
+                        onAction="#handleSavePassword"
+                        styleClass="dashboard-button"/>
+            </VBox>
+
+            <!-- Email notifications -->
+            <VBox spacing="12"
+                  alignment="CENTER"
+                  styleClass="dashboard-card"
+                  prefWidth="500">
+                <Label text="Email Notifications" styleClass="subtitle"/>
+
+                <CheckBox fx:id="emailNotificationsCheck"
+                          text="Receive email notifications for event updates, cancellations, and reminders."
+                          wrapText="true"/>
+
+                <Button text="Save Preferences"
+                        onAction="#handleSavePreferences"
+                        styleClass="dashboard-button"/>
+            </VBox>
+
+        </VBox>
+    </content>
+</ScrollPane>

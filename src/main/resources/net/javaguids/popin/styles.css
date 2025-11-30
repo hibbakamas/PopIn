@@ -200,3 +200,8 @@
 .table-row-cell:selected .text {
     -fx-fill: black !important; /* readable on purple highlight */
 }
+
+.info-label {
+    -fx-text-fill: #d5b3ff; /* soft lavender */
+    -fx-font-size: 14px;
+}
