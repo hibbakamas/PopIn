@@ -15,12 +15,10 @@ public class UserDAO {
     // ----------------------------------
     public Optional<User> findByUsername(String username) {
         String sql = "SELECT id, username, password_hash, role_name FROM users WHERE username = ?";
-
         try (Connection conn = Database.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
 
             stmt.setString(1, username);
-
             try (ResultSet rs = stmt.executeQuery()) {
                 if (rs.next()) {
                     int id = rs.getInt("id");
@@ -33,11 +31,9 @@ public class UserDAO {
                     return Optional.of(user);
                 }
             }
-
         } catch (SQLException e) {
             System.err.println("UserDAO.findByUsername error: " + e.getMessage());
         }
-
         return Optional.empty();
     }
 
@@ -46,13 +42,11 @@ public class UserDAO {
     // ----------------------------------
     public User findById(int id) {
         String sql = "SELECT id, username, password_hash, role_name FROM users WHERE id = ?";
-
         try (Connection conn = Database.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
 
             stmt.setInt(1, id);
             ResultSet rs = stmt.executeQuery();
-
             if (rs.next()) {
                 return new User(
                         rs.getInt("id"),
@@ -61,11 +55,9 @@ public class UserDAO {
                         new Role(rs.getString("role_name"))
                 );
             }
-
         } catch (SQLException e) {
             System.err.println("UserDAO.findById error: " + e.getMessage());
         }
-
         return null;
     }
 
@@ -74,17 +66,14 @@ public class UserDAO {
     // ----------------------------------
     public boolean createUser(User user) {
         String sql = "INSERT INTO users (username, password_hash, role_name) VALUES (?, ?, ?)";
-
         try (Connection conn = Database.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
 
             stmt.setString(1, user.getUsername());
             stmt.setString(2, user.getPasswordHash());
             stmt.setString(3, user.getRole().getName());
-
             int rows = stmt.executeUpdate();
             return rows == 1;
-
         } catch (SQLException e) {
             System.err.println("UserDAO.createUser error: " + e.getMessage());
             return false;
@@ -97,7 +86,6 @@ public class UserDAO {
     public List<User> listAll() {
         List<User> users = new ArrayList<>();
         String sql = "SELECT id, username, password_hash, role_name FROM users";
-
         try (Connection conn = Database.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql);
              ResultSet rs = stmt.executeQuery()) {
@@ -112,11 +100,9 @@ public class UserDAO {
                 User user = new User(id, uname, passwordHash, role);
                 users.add(user);
             }
-
         } catch (SQLException e) {
             System.err.println("UserDAO.listAll error: " + e.getMessage());
         }
-
         return users;
     }
 
@@ -125,13 +111,11 @@ public class UserDAO {
     // ----------------------------------
     public int countAll() {
         String sql = "SELECT COUNT(*) FROM users";
-
         try (Connection conn = Database.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql);
              ResultSet rs = stmt.executeQuery()) {
 
             return rs.getInt(1);
-
         } catch (SQLException e) {
             System.err.println("UserDAO.countAll error: " + e.getMessage());
             return 0;
@@ -143,14 +127,12 @@ public class UserDAO {
     // ----------------------------------
     public boolean deleteById(int id) {
         String sql = "DELETE FROM users WHERE id = ?";
-
         try (Connection conn = Database.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
 
             stmt.setInt(1, id);
             int rows = stmt.executeUpdate();
             return rows == 1;
-
         } catch (SQLException e) {
             System.err.println("UserDAO.deleteById error: " + e.getMessage());
             return false;
@@ -162,7 +144,6 @@ public class UserDAO {
     // ----------------------------------
     public boolean updatePassword(int id, String newHash) {
         String sql = "UPDATE users SET password_hash = ? WHERE id = ?";
-
         try (Connection conn = Database.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
 
@@ -170,9 +151,63 @@ public class UserDAO {
             stmt.setInt(2, id);
             int rows = stmt.executeUpdate();
             return rows == 1;
-
         } catch (SQLException e) {
             System.err.println("UserDAO.updatePassword error: " + e.getMessage());
+            return false;
+        }
+    }
+
+    // ----------------------------------
+    // UPDATE USERNAME (for profile page)
+    // ----------------------------------
+    public boolean updateUsername(int id, String newUsername) {
+        String sql = "UPDATE users SET username = ? WHERE id = ?";
+        try (Connection conn = Database.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+
+            stmt.setString(1, newUsername);
+            stmt.setInt(2, id);
+            int rows = stmt.executeUpdate();
+            return rows == 1;
+        } catch (SQLException e) {
+            System.err.println("UserDAO.updateUsername error: " + e.getMessage());
+            return false;
+        }
+    }
+
+    // ----------------------------------
+    // EMAIL NOTIFICATIONS (for profile page)
+    // ----------------------------------
+
+    // Returns true if notifications are enabled (defaults to true on error)
+    public boolean getEmailNotifications(int id) {
+        String sql = "SELECT email_notifications FROM users WHERE id = ?";
+        try (Connection conn = Database.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+
+            stmt.setInt(1, id);
+            ResultSet rs = stmt.executeQuery();
+            if (rs.next()) {
+                int value = rs.getInt("email_notifications"); // 1 or 0
+                return value != 0;
+            }
+        } catch (SQLException e) {
+            System.err.println("UserDAO.getEmailNotifications error: " + e.getMessage());
+        }
+        return true; // safe default
+    }
+
+    public boolean updateEmailNotifications(int id, boolean enabled) {
+        String sql = "UPDATE users SET email_notifications = ? WHERE id = ?";
+        try (Connection conn = Database.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+
+            stmt.setInt(1, enabled ? 1 : 0);
+            stmt.setInt(2, id);
+            int rows = stmt.executeUpdate();
+            return rows == 1;
+        } catch (SQLException e) {
+            System.err.println("UserDAO.updateEmailNotifications error: " + e.getMessage());
             return false;
         }
     }
