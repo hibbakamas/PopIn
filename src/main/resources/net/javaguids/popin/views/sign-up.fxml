@@ -40,6 +40,21 @@
                 </items>
             </ComboBox>
 
+            <!-- Admin access code (hidden unless role = admin) -->
+            <VBox fx:id="adminCodeBox"
+                  spacing="5"
+                  alignment="CENTER_LEFT"
+                  visible="false"
+                  managed="false"
+                  maxWidth="250">
+                <Label text="Admin Access Code"
+                       styleClass="subtitle"/>
+                <PasswordField fx:id="adminCodeField"
+                               promptText="Enter admin code"
+                               maxWidth="250"
+                               styleClass="password-field"/>
+            </VBox>
+
             <Label fx:id="errorLabel"
                    textFill="red"
                    wrapText="true"
@@ -55,6 +70,7 @@
             <Hyperlink text="Already have an account? Log in"
                        onAction="#goToLogin"
                        styleClass="link-text"/>
+
         </VBox>
     </VBox>
 </StackPane>
