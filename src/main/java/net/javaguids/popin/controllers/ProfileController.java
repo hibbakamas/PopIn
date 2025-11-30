@@ -2,6 +2,7 @@ package net.javaguids.popin.controllers;
 
 import javafx.fxml.FXML;
 import javafx.scene.control.*;
+import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
 import net.javaguids.popin.database.UserDAO;
 import net.javaguids.popin.models.User;
@@ -13,6 +14,7 @@ public class ProfileController {
 
     @FXML private Label usernameLabel;
     @FXML private Label roleLabel;
+    @FXML private Label emailStatusLabel;
 
     @FXML private TextField newUsernameField;
 
@@ -21,18 +23,44 @@ public class ProfileController {
     @FXML private PasswordField confirmPasswordField;
 
     @FXML private CheckBox emailNotificationsCheck;
+    @FXML private VBox emailSection; // whole email card to hide/show
 
     private final UserDAO userDAO = new UserDAO();
     private User loggedInUser;
 
     public void setLoggedInUser(User user) {
         this.loggedInUser = user;
-        if (user != null) {
-            usernameLabel.setText("Username: " + user.getUsername());
-            roleLabel.setText("Role: " + user.getRole().getName());
 
-            boolean enabled = userDAO.getEmailNotifications(user.getId());
-            emailNotificationsCheck.setSelected(enabled);
+        if (user != null) {
+            String roleName = user.getRole().getName();
+            usernameLabel.setText("Username: " + user.getUsername());
+            roleLabel.setText("Role: " + roleName);
+
+            boolean isAttendee = "ATTENDEE".equalsIgnoreCase(roleName);
+
+            // Show/hide entire email card for attendees only
+            if (emailSection != null) {
+                emailSection.setVisible(isAttendee);
+                emailSection.setManaged(isAttendee);
+            }
+
+            // Show/hide the read-only email info line in Account Information
+            if (emailStatusLabel != null) {
+                if (isAttendee) {
+                    emailStatusLabel.setVisible(true);
+                    emailStatusLabel.setManaged(true);
+
+                    boolean enabled = userDAO.getEmailNotifications(user.getId());
+                    emailNotificationsCheck.setSelected(enabled);
+                    emailStatusLabel.setText(
+                            "Email notifications: " + (enabled ? "Enabled" : "Disabled")
+                    );
+                } else {
+                    // For non-attendees: no email info line at all
+                    emailStatusLabel.setVisible(false);
+                    emailStatusLabel.setManaged(false);
+                }
+            }
         }
     }
 
@@ -49,13 +77,11 @@ public class ProfileController {
             showError("New username cannot be empty.");
             return;
         }
-
         if (newUsername.equals(loggedInUser.getUsername())) {
             showError("New username must be different from the current one.");
             return;
         }
 
-        // Check uniqueness using Optional<User>
         Optional<User> existingOpt = userDAO.findByUsername(newUsername);
         if (existingOpt.isPresent()) {
             showError("This username is already taken.");
@@ -68,7 +94,7 @@ public class ProfileController {
             return;
         }
 
-        loggedInUser.setUsername(newUsername); // assuming setter exists
+        loggedInUser.setUsername(newUsername);
         usernameLabel.setText("Username: " + newUsername);
         newUsernameField.clear();
 
@@ -109,8 +135,7 @@ public class ProfileController {
             return;
         }
 
-        // Validate old password against stored hash
-        String storedHash = loggedInUser.getPasswordHash(); // adjust if your User model differs
+        String storedHash = loggedInUser.getPasswordHash();
         if (!PasswordHasher.matchPassword(oldPw, storedHash)) {
             showError("Old password is incorrect.");
             return;
@@ -123,7 +148,6 @@ public class ProfileController {
             return;
         }
 
-        // update in-memory user if you store the hash there
         loggedInUser.setPasswordHash(newHash);
 
         oldPasswordField.clear();
@@ -133,11 +157,18 @@ public class ProfileController {
         showInfo("Password updated successfully.");
     }
 
-    // -------------------- EMAIL PREFERENCES --------------------
+    // -------------------- EMAIL PREFERENCES (ATTENDEE only) --------------------
     @FXML
     private void handleSavePreferences() {
         if (loggedInUser == null) {
             showError("No logged-in user found.");
+            return;
+        }
+
+        String roleName = loggedInUser.getRole().getName();
+        if (!"ATTENDEE".equalsIgnoreCase(roleName)) {
+            // should normally be hidden, but just in case
+            showError("Email notifications are only available for attendees.");
             return;
         }
 
@@ -146,6 +177,13 @@ public class ProfileController {
         if (!updated) {
             showError("Could not update email preference. Please try again.");
             return;
+        }
+
+        // Update label (only visible for attendees anyway)
+        if (emailStatusLabel != null) {
+            emailStatusLabel.setText(
+                    "Email notifications: " + (enabled ? "Enabled" : "Disabled")
+            );
         }
 
         showInfo("Email notification preferences saved.");

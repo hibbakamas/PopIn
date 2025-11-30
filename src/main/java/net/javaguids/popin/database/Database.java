@@ -14,17 +14,19 @@ public class Database {
              Statement stmt = conn.createStatement()) {
 
             String createUsersTable = """
-                    CREATE TABLE IF NOT EXISTS users (
-                        id INTEGER PRIMARY KEY AUTOINCREMENT,
-                        username      TEXT NOT NULL UNIQUE,
-                        password_hash TEXT NOT NULL,
-                        role_name     TEXT NOT NULL
-                    );
-                    """;
+                CREATE TABLE IF NOT EXISTS users (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    username TEXT NOT NULL UNIQUE,
+                    password_hash TEXT NOT NULL,
+                    role_name TEXT NOT NULL,
+                    email_notifications INTEGER DEFAULT 1
+                );
+                """;
 
             stmt.execute(createUsersTable);
 
             // Event & registration tables are handled in EventDAO / RegistrationDAO
+
         } catch (SQLException e) {
             System.err.println("Error initializing database: " + e.getMessage());
         }
