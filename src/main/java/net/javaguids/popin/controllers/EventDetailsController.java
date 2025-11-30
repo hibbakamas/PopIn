@@ -1,13 +1,15 @@
 package net.javaguids.popin.controllers;
+
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.stage.Stage;
-
 import javafx.fxml.FXML;
 import javafx.scene.control.Alert;
+import javafx.scene.control.ButtonType;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
+import net.javaguids.popin.database.ReportDAO;
 import net.javaguids.popin.models.Event;
 import net.javaguids.popin.models.PaidEvent;
 import net.javaguids.popin.models.User;
@@ -22,18 +24,20 @@ public class EventDetailsController {
     @FXML private Label venueLabel;
     @FXML private Label priceLabel;
     @FXML private Label capacityLabel;
-
     @FXML private Button registerButton;
     @FXML private Button cancelButton;
     @FXML private Button checkInButton;
     @FXML private Button editButton;
     @FXML private Button deleteButton;
 
+    // NEW:
+    @FXML private Button reportButton;
+
     private Event event;
     private User loggedInUser;
-
     private final RegistrationService registrationService = new RegistrationService();
     private final EventService eventService = new EventService();
+    private final ReportDAO reportDAO = new ReportDAO(); // NEW
 
     // Called from EventListController
     public void setEvent(Event event) {
@@ -66,7 +70,6 @@ public class EventDetailsController {
     // -----------------------------------------
     private void updateButtonsForRole() {
         if (loggedInUser == null) return;
-
         String role = loggedInUser.getRole().getName();
 
         switch (role) {
@@ -79,40 +82,48 @@ public class EventDetailsController {
     private void setupAttendeeButtons() {
         registerButton.setVisible(!registrationService.isEventFull(event.getId())
                 && !registrationService.isUserRegistered(event.getId(), loggedInUser.getId()));
-
-        cancelButton.setVisible(
-                registrationService.isUserRegistered(event.getId(), loggedInUser.getId())
-        );
-
+        cancelButton.setVisible(registrationService.isUserRegistered(event.getId(), loggedInUser.getId()));
         checkInButton.setVisible(false);
         editButton.setVisible(false);
         deleteButton.setVisible(false);
+
+        // attendees see Report button
+        if (reportButton != null) {
+            reportButton.setVisible(true);
+            reportButton.setManaged(true);
+        }
     }
 
     private void setupOrganizerButtons() {
         registerButton.setVisible(false);
         cancelButton.setVisible(false);
-
         checkInButton.setVisible(true);
         editButton.setVisible(true);
         deleteButton.setVisible(true);
+
+        if (reportButton != null) {
+            reportButton.setVisible(false);
+            reportButton.setManaged(false); // no gap
+        }
     }
 
     private void setupAdminButtons() {
         registerButton.setVisible(false);
         cancelButton.setVisible(false);
-
         checkInButton.setVisible(true);
         editButton.setVisible(false);
         deleteButton.setVisible(true);
+
+        if (reportButton != null) {
+            reportButton.setVisible(false);
+            reportButton.setManaged(false); // no gap
+        }
     }
 
     // -----------------------------------------
     // BUTTON ACTIONS
     // -----------------------------------------
-
-    @FXML
-    private void handleRegister() {
+    @FXML private void handleRegister() {
         try {
             registrationService.registerUser(event.getId(), loggedInUser.getId());
             showSuccess("You are now registered!");
@@ -122,8 +133,7 @@ public class EventDetailsController {
         }
     }
 
-    @FXML
-    private void handleCancelRegistration() {
+    @FXML private void handleCancelRegistration() {
         try {
             registrationService.cancelRegistration(event.getId(), loggedInUser.getId());
             showSuccess("Your registration has been cancelled.");
@@ -133,8 +143,7 @@ public class EventDetailsController {
         }
     }
 
-    @FXML
-    private void handleCheckIn() {
+    @FXML private void handleCheckIn() {
         try {
             registrationService.checkInUser(event.getId(), loggedInUser.getId());
             showSuccess("User checked in successfully.");
@@ -143,21 +152,18 @@ public class EventDetailsController {
         }
     }
 
-    @FXML
-    private void handleEditEvent() {
+    @FXML private void handleEditEvent() {
         showInfo("Edit event not implemented yet.");
     }
 
-    @FXML
-    private void handleDeleteEvent() {
+    @FXML private void handleDeleteEvent() {
         showInfo("Delete event not implemented yet.");
     }
-    @FXML
-    private void handleViewAttendees() {
+
+    @FXML private void handleViewAttendees() {
         try {
             FXMLLoader loader = new FXMLLoader(getClass().getResource("/net/javaguids/popin/views/attendee-list.fxml"));
             Parent root = loader.load();
-
             AttendeeListController controller = loader.getController();
             controller.setEvent(event);
 
@@ -165,12 +171,37 @@ public class EventDetailsController {
             stage.setTitle("Attendee List");
             stage.setScene(new Scene(root));
             stage.show();
-
         } catch (Exception e) {
             showError("Could not open attendee list: " + e.getMessage());
         }
     }
 
+    // NEW: attendee reporting
+    @FXML private void handleReportEvent() {
+        if (loggedInUser == null || !"ATTENDEE".equalsIgnoreCase(loggedInUser.getRole().getName())) {
+            showError("Only attendees can report events.");
+            return;
+        }
+
+        if (reportDAO.hasUserReported(event.getId(), loggedInUser.getId())) {
+            showError("You have already reported this event.");
+            return;
+        }
+
+        Alert confirm = new Alert(Alert.AlertType.CONFIRMATION);
+        confirm.setHeaderText("Report Event");
+        confirm.setContentText("Are you sure you want to report this event?");
+        confirm.showAndWait().ifPresent(result -> {
+            if (result == ButtonType.OK) {
+                boolean ok = reportDAO.addReport(event.getId(), loggedInUser.getId());
+                if (ok) {
+                    showSuccess("Event reported successfully.");
+                } else {
+                    showError("Could not report event. Please try again.");
+                }
+            }
+        });
+    }
 
     // -----------------------------------------
     // UI UTILITIES

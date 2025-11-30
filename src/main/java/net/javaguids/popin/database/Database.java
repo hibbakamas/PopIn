@@ -6,7 +6,6 @@ import java.sql.SQLException;
 import java.sql.Statement;
 
 public class Database {
-
     private static final String DB_URL = "jdbc:sqlite:popin.db";
 
     static {
@@ -21,9 +20,21 @@ public class Database {
                     role_name TEXT NOT NULL,
                     email_notifications INTEGER DEFAULT 1
                 );
-                """;
-
+            """;
             stmt.execute(createUsersTable);
+
+            // NEW: reports table (very simple: event + attendee)
+            String createReportsTable = """
+                CREATE TABLE IF NOT EXISTS reports (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    event_id INTEGER NOT NULL,
+                    attendee_id INTEGER NOT NULL,
+                    created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+                    FOREIGN KEY (event_id) REFERENCES events(id),
+                    FOREIGN KEY (attendee_id) REFERENCES users(id)
+                );
+            """;
+            stmt.execute(createReportsTable);
 
             // Event & registration tables are handled in EventDAO / RegistrationDAO
 

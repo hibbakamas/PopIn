@@ -10,7 +10,6 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class EventDAO {
-
     private static final DateTimeFormatter FORMATTER = DateTimeFormatter.ISO_LOCAL_DATE_TIME;
 
     public EventDAO() {
@@ -20,23 +19,20 @@ public class EventDAO {
     // ---------------- TABLE CREATION ----------------
     private void createTableIfNotExists() {
         String sql = """
-                CREATE TABLE IF NOT EXISTS events (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    title TEXT NOT NULL,
-                    description TEXT,
-                    date_time TEXT NOT NULL,
-                    venue TEXT NOT NULL,
-                    capacity INTEGER NOT NULL,
-                    organizer_id INTEGER NOT NULL,
-                    price REAL
-                );
-                """;
-
+            CREATE TABLE IF NOT EXISTS events (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                title TEXT NOT NULL,
+                description TEXT,
+                date_time TEXT NOT NULL,
+                venue TEXT NOT NULL,
+                capacity INTEGER NOT NULL,
+                organizer_id INTEGER NOT NULL,
+                price REAL
+            );
+        """;
         try (Connection conn = Database.getConnection();
              Statement stmt = conn.createStatement()) {
-
             stmt.execute(sql);
-
         } catch (SQLException e) {
             e.printStackTrace();
         }
@@ -45,11 +41,9 @@ public class EventDAO {
     // ---------------- CREATE EVENT ----------------
     public boolean createEvent(Event event) {
         String sql = """
-                INSERT INTO events
-                    (title, description, date_time, venue, capacity, organizer_id, price)
-                VALUES (?, ?, ?, ?, ?, ?, ?);
-                """;
-
+            INSERT INTO events (title, description, date_time, venue, capacity, organizer_id, price)
+            VALUES (?, ?, ?, ?, ?, ?, ?);
+        """;
         try (Connection conn = Database.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
 
@@ -69,42 +63,54 @@ public class EventDAO {
             int rows = stmt.executeUpdate();
             System.out.println("[EventDAO] createEvent → " + rows + " row(s) added.");
             return rows > 0;
-
         } catch (SQLException e) {
             e.printStackTrace();
             return false;
         }
     }
 
-    public int countRegistered(int eventId) {
-        String sql = """
-        SELECT COUNT(*) FROM registrations
-        WHERE event_id = ? AND status = 'REGISTERED';
-    """;
-
+    // ---------------- FIND BY ID ----------------
+    public Event findById(int id) {
+        String sql = "SELECT * FROM events WHERE id = ?";
         try (Connection conn = Database.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
 
+            stmt.setInt(1, id);
+            try (ResultSet rs = stmt.executeQuery()) {
+                if (rs.next()) {
+                    return mapRowToEvent(rs);
+                }
+            }
+        } catch (SQLException e) {
+            System.err.println("EventDAO.findById error: " + e.getMessage());
+        }
+        return null;
+    }
+
+    // ---------------- COUNT REGISTERED ----------------
+    public int countRegistered(int eventId) {
+        String sql = """
+            SELECT COUNT(*) FROM registrations
+            WHERE event_id = ? AND status = 'REGISTERED';
+        """;
+        try (Connection conn = Database.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
             stmt.setInt(1, eventId);
             ResultSet rs = stmt.executeQuery();
             return rs.getInt(1);
-
         } catch (SQLException e) {
             e.printStackTrace();
             return 0;
         }
     }
 
-
     // ---------------- UPDATE EVENT ----------------
     public boolean updateEvent(Event event, Double price) {
         String sql = """
-                UPDATE events
-                SET title = ?, description = ?, date_time = ?, venue = ?,
-                    capacity = ?, organizer_id = ?, price = ?
-                WHERE id = ?;
-                """;
-
+            UPDATE events
+            SET title = ?, description = ?, date_time = ?, venue = ?, capacity = ?, organizer_id = ?, price = ?
+            WHERE id = ?;
+        """;
         try (Connection conn = Database.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
 
@@ -122,11 +128,9 @@ public class EventDAO {
             }
 
             stmt.setInt(8, event.getId());
-
             int rows = stmt.executeUpdate();
             System.out.println("[EventDAO] updateEvent rows = " + rows + " for id = " + event.getId());
             return rows > 0;
-
         } catch (SQLException e) {
             e.printStackTrace();
             return false;
@@ -136,15 +140,12 @@ public class EventDAO {
     // ---------------- DELETE EVENT ----------------
     public boolean deleteEvent(int id) {
         String sql = "DELETE FROM events WHERE id = ?";
-
         try (Connection conn = Database.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
-
             stmt.setInt(1, id);
             int rows = stmt.executeUpdate();
             System.out.println("[EventDAO] deleteEvent rows = " + rows + " for id = " + id);
             return rows > 0;
-
         } catch (SQLException e) {
             e.printStackTrace();
             return false;
@@ -155,81 +156,65 @@ public class EventDAO {
     public List<Event> findAll() {
         List<Event> events = new ArrayList<>();
         String sql = "SELECT * FROM events ORDER BY datetime(date_time) DESC;";
-
         try (Connection conn = Database.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql);
              ResultSet rs = stmt.executeQuery()) {
-
             while (rs.next()) {
                 events.add(mapRowToEvent(rs));
             }
-
         } catch (SQLException e) {
             e.printStackTrace();
         }
-
         return events;
     }
 
     public List<Event> findAllUpcoming() {
         List<Event> events = new ArrayList<>();
         String sql = """
-                SELECT * FROM events
-                WHERE datetime(date_time) > datetime('now')
-                ORDER BY datetime(date_time) ASC;
-                """;
-
+            SELECT * FROM events
+            WHERE datetime(date_time) > datetime('now')
+            ORDER BY datetime(date_time) ASC;
+        """;
         try (Connection conn = Database.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql);
              ResultSet rs = stmt.executeQuery()) {
-
             while (rs.next()) {
                 events.add(mapRowToEvent(rs));
             }
-
         } catch (SQLException e) {
             e.printStackTrace();
         }
-
         return events;
     }
 
     public List<Event> findByOrganizerId(int organizerId) {
         List<Event> events = new ArrayList<>();
         String sql = """
-                SELECT * FROM events
-                WHERE organizer_id = ?
-                ORDER BY datetime(date_time) DESC;
-                """;
-
+            SELECT * FROM events
+            WHERE organizer_id = ?
+            ORDER BY datetime(date_time) DESC;
+        """;
         try (Connection conn = Database.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
-
             stmt.setInt(1, organizerId);
-
             try (ResultSet rs = stmt.executeQuery()) {
                 while (rs.next()) {
                     events.add(mapRowToEvent(rs));
                 }
             }
-
         } catch (SQLException e) {
             e.printStackTrace();
         }
-
         return events;
     }
 
     // ---------------- ANALYTICS: COUNT ALL ----------------
     public int countAll() {
         String sql = "SELECT COUNT(*) FROM events";
-
         try (Connection conn = Database.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql);
              ResultSet rs = stmt.executeQuery()) {
-
             return rs.getInt(1);
-
         } catch (SQLException e) {
             e.printStackTrace();
             return 0;
@@ -253,7 +238,6 @@ public class EventDAO {
         if (hasPrice) {
             return new PaidEvent(id, title, description, dateTime, venue, capacity, organizerId, price);
         }
-
         return new Event(id, title, description, dateTime, venue, capacity, organizerId);
     }
 }

@@ -90,7 +90,7 @@ public class AdminDashboardController {
     @FXML
     private void handleManageReports() {
         System.out.println("Admin clicked: Manage Flags / Reports");
-        // TODO: when you add reports.fxml, load it here
+        openScene("/net/javaguids/popin/views/reports-view.fxml", "Reported Events");
     }
 
     @FXML
