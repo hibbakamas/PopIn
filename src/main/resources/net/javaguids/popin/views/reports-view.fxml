@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+
+<VBox xmlns="http://javafx.com/javafx"
+      xmlns:fx="http://javafx.com/fxml"
+      fx:controller="net.javaguids.popin.controllers.ReportsController"
+      spacing="20"
+      alignment="TOP_CENTER"
+      stylesheets="@../styles.css"
+      style="-fx-padding: 20;">
+
+    <Label text="Reported Events" styleClass="title"/>
+
+    <TableView fx:id="reportsTable" prefWidth="480" prefHeight="300" styleClass="table-view">
+        <columns>
+            <TableColumn fx:id="colEventTitle" text="Event" prefWidth="340"/>
+            <TableColumn fx:id="colCount" text="Reports" prefWidth="120"/>
+        </columns>
+    </TableView>
+</VBox>

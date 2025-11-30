@@ -25,10 +25,16 @@
               prefHeight="450"
               style="-fx-background-insets: 0;"/>
 
-    <!-- REGISTER / UNREGISTER BUTTON -->
+    <!-- ACTION BUTTONS (VERTICAL STACK) -->
     <Button fx:id="registerButton"
             text="Select an event"
             onAction="#handleToggleRegistration"
+            disable="true"
+            styleClass="dashboard-button"/>
+
+    <Button fx:id="reportButton"
+            text="Report Event"
+            onAction="#handleReportEvent"
             disable="true"
             styleClass="dashboard-button"/>
 
