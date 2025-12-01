@@ -1,6 +1,9 @@
 package net.javaguids.popin.database;
 
+import net.javaguids.popin.exceptions.DatabaseOperationException;
 import net.javaguids.popin.models.*;
+import net.javaguids.popin.exceptions.DatabaseOperationException;
+
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
@@ -8,176 +11,238 @@ import java.util.Optional;
 
 public class UserDAO {
 
-    // ------------------- Map a DB row -> correct User subclass -------------------
+    // ----------------------------------
+    // Map a DB row -> correct User subclass
+    // ----------------------------------
     private User mapRowToUser(ResultSet rs) throws SQLException {
         int id = rs.getInt("id");
-        String username = rs.getString("username");
+        String uname = rs.getString("username");
         String passwordHash = rs.getString("password_hash");
         String roleName = rs.getString("role_name");
-
         String upper = roleName != null ? roleName.toUpperCase() : "";
 
-        return switch (upper) {
-            case "ADMIN" -> new Admin(id, username, passwordHash);
-            case "ORGANIZER" -> new Organizer(id, username, passwordHash);
-            case "ATTENDEE" -> new Attendee(id, username, passwordHash);
+        User user;
+        switch (upper) {
+            case "ADMIN" -> user = new Admin(uname, passwordHash);
+            case "ORGANIZER" -> user = new Organizer(uname, passwordHash);
+            case "ATTENDEE" -> user = new Attendee(uname, passwordHash);
             default -> {
+                // fallback: keep data but treat as ATTENDEE by default
                 System.err.println("UserDAO: unknown role '" + roleName + "', defaulting to ATTENDEE");
-                yield new Attendee(id, username, passwordHash);
+                user = new Attendee(uname, passwordHash);
             }
-        };
+        }
+
+        user.setId(id);
+        return user;
     }
 
-    // ------------------- FIND USER BY USERNAME (used in login) -------------------
+    // ----------------------------------
+    // FIND USER BY USERNAME (used in login)
+    // ----------------------------------
     public Optional<User> findByUsername(String username) {
         String sql = "SELECT id, username, password_hash, role_name FROM users WHERE username = ?";
+
         try (Connection conn = Database.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
+
             stmt.setString(1, username);
+
             try (ResultSet rs = stmt.executeQuery()) {
                 if (rs.next()) {
                     return Optional.of(mapRowToUser(rs));
                 }
+                return Optional.empty();
             }
+
         } catch (SQLException e) {
-            System.err.println("UserDAO.findByUsername error: " + e.getMessage());
+            throw new DatabaseOperationException(
+                    "Error finding user by username '" + username + "'", e);
         }
-        return Optional.empty();
     }
 
-    // ------------------- FIND USER BY ID -------------------
+    // ----------------------------------
+    // FIND USER BY ID
+    // ----------------------------------
     public User findById(int id) {
         String sql = "SELECT id, username, password_hash, role_name FROM users WHERE id = ?";
+
         try (Connection conn = Database.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
+
             stmt.setInt(1, id);
             ResultSet rs = stmt.executeQuery();
+
             if (rs.next()) {
                 return mapRowToUser(rs);
             }
+            return null;
+
         } catch (SQLException e) {
-            System.err.println("UserDAO.findById error: " + e.getMessage());
+            throw new DatabaseOperationException("Error finding user by id " + id, e);
         }
-        return null;
     }
 
-    // ------------------- CREATE USER (used in signup) -------------------
+    // ----------------------------------
+    // CREATE USER (used in signup)
+    // ----------------------------------
     public boolean createUser(User user) {
         String sql = "INSERT INTO users (username, password_hash, role_name) VALUES (?, ?, ?)";
+
         try (Connection conn = Database.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
+
             stmt.setString(1, user.getUsername());
             stmt.setString(2, user.getPasswordHash());
             stmt.setString(3, user.getRole().getName());
+
             int rows = stmt.executeUpdate();
-            return rows == 1;
+            if (rows != 1) {
+                throw new DatabaseOperationException("Creating user failed, no rows affected.");
+            }
+            return true;
+
         } catch (SQLException e) {
-            System.err.println("UserDAO.createUser error: " + e.getMessage());
-            return false;
+            throw new DatabaseOperationException(
+                    "Error creating user '" + user.getUsername() + "'", e);
         }
     }
 
-    // ------------------- LIST ALL USERS (for admin user list) -------------------
+    // ----------------------------------
+    // LIST ALL USERS (for admin user list)
+    // ----------------------------------
     public List<User> listAll() {
         List<User> users = new ArrayList<>();
         String sql = "SELECT id, username, password_hash, role_name FROM users";
+
         try (Connection conn = Database.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql);
              ResultSet rs = stmt.executeQuery()) {
+
             while (rs.next()) {
                 users.add(mapRowToUser(rs));
             }
+            return users;
+
         } catch (SQLException e) {
-            System.err.println("UserDAO.listAll error: " + e.getMessage());
+            throw new DatabaseOperationException("Error retrieving all users.", e);
         }
-        return users;
     }
 
-    // ------------------- ANALYTICS: COUNT ALL USERS -------------------
+    // ----------------------------------
+    // ANALYTICS: COUNT ALL USERS
+    // ----------------------------------
     public int countAll() {
         String sql = "SELECT COUNT(*) FROM users";
+
         try (Connection conn = Database.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql);
              ResultSet rs = stmt.executeQuery()) {
+
             return rs.getInt(1);
+
         } catch (SQLException e) {
-            System.err.println("UserDAO.countAll error: " + e.getMessage());
-            return 0;
+            throw new DatabaseOperationException("Error counting users.", e);
         }
     }
 
-    // ------------------- DELETE USER BY ID (admin delete) -------------------
+    // ----------------------------------
+    // DELETE USER BY ID (admin delete)
+    // ----------------------------------
     public boolean deleteById(int id) {
         String sql = "DELETE FROM users WHERE id = ?";
+
         try (Connection conn = Database.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
+
             stmt.setInt(1, id);
             int rows = stmt.executeUpdate();
             return rows == 1;
+
         } catch (SQLException e) {
-            System.err.println("UserDAO.deleteById error: " + e.getMessage());
-            return false;
+            throw new DatabaseOperationException("Error deleting user with id " + id, e);
         }
     }
 
-    // ------------------- UPDATE PASSWORD (for profile page) -------------------
+    // ----------------------------------
+    // UPDATE PASSWORD (for profile page)
+    // ----------------------------------
     public boolean updatePassword(int id, String newHash) {
         String sql = "UPDATE users SET password_hash = ? WHERE id = ?";
+
         try (Connection conn = Database.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
+
             stmt.setString(1, newHash);
             stmt.setInt(2, id);
             int rows = stmt.executeUpdate();
             return rows == 1;
+
         } catch (SQLException e) {
-            System.err.println("UserDAO.updatePassword error: " + e.getMessage());
-            return false;
+            throw new DatabaseOperationException("Error updating password for user " + id, e);
         }
     }
 
-    // ------------------- UPDATE USERNAME (for profile page) -------------------
+    // ----------------------------------
+    // UPDATE USERNAME (for profile page)
+    // ----------------------------------
     public boolean updateUsername(int id, String newUsername) {
         String sql = "UPDATE users SET username = ? WHERE id = ?";
+
         try (Connection conn = Database.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
+
             stmt.setString(1, newUsername);
             stmt.setInt(2, id);
             int rows = stmt.executeUpdate();
             return rows == 1;
+
         } catch (SQLException e) {
-            System.err.println("UserDAO.updateUsername error: " + e.getMessage());
-            return false;
+            throw new DatabaseOperationException(
+                    "Error updating username for user " + id + " to '" + newUsername + "'", e);
         }
     }
 
-    // ------------------- EMAIL NOTIFICATIONS -------------------
+    // ----------------------------------
+    // EMAIL NOTIFICATIONS (for profile page)
+    // ----------------------------------
+
+    // Returns true if notifications are enabled (defaults to true on error)
     public boolean getEmailNotifications(int id) {
         String sql = "SELECT email_notifications FROM users WHERE id = ?";
+
         try (Connection conn = Database.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
+
             stmt.setInt(1, id);
             ResultSet rs = stmt.executeQuery();
             if (rs.next()) {
-                int value = rs.getInt("email_notifications");
+                int value = rs.getInt("email_notifications"); // 1 or 0
                 return value != 0;
             }
+            // If user not found, default to true (or you might want false)
+            return true;
+
         } catch (SQLException e) {
-            System.err.println("UserDAO.getEmailNotifications error: " + e.getMessage());
+            throw new DatabaseOperationException(
+                    "Error reading email notifications for user " + id, e);
         }
-        return true; // default
     }
 
     public boolean updateEmailNotifications(int id, boolean enabled) {
         String sql = "UPDATE users SET email_notifications = ? WHERE id = ?";
+
         try (Connection conn = Database.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
+
             stmt.setInt(1, enabled ? 1 : 0);
             stmt.setInt(2, id);
             int rows = stmt.executeUpdate();
             return rows == 1;
+
         } catch (SQLException e) {
-            System.err.println("UserDAO.updateEmailNotifications error: " + e.getMessage());
-            return false;
+            throw new DatabaseOperationException(
+                    "Error updating email notifications for user " + id, e);
         }
     }
 }
