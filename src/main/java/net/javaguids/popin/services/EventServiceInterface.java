@@ -6,8 +6,14 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 public interface EventServiceInterface {
-    boolean createEvent(String title, String description, LocalDateTime dateTime,
-                        String venue, int capacity, int organizerId, Double price);
+
+    boolean createEvent(String title,
+                        String description,
+                        LocalDateTime dateTime,
+                        String venue,
+                        int capacity,
+                        int organizerId,
+                        Double price);
 
     boolean updateEvent(Event event, Double price);
 

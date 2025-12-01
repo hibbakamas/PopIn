@@ -2,6 +2,7 @@ package net.javaguids.popin.services;
 
 import net.javaguids.popin.database.EventDAO;
 import net.javaguids.popin.database.RegistrationDAO;
+import net.javaguids.popin.exceptions.EventFullException;
 import net.javaguids.popin.models.Event;
 
 public class RegistrationService implements RegistrationServiceInterface {
@@ -18,19 +19,17 @@ public class RegistrationService implements RegistrationServiceInterface {
         Event event = eventDAO.findAllUpcoming().stream()
                 .filter(e -> e.getId() == eventId)
                 .findFirst()
-                .orElse(null);
-
-        if (event == null) {
-            throw new IllegalArgumentException("Event not found.");
-        }
+                .orElseThrow(() -> new IllegalArgumentException("Event not found."));
 
         int currentCount = registrationDAO.countRegistered(eventId);
         if (currentCount >= event.getCapacity()) {
-            throw new IllegalStateException("This event is full.");
+            throw new EventFullException("This event is full.");
         }
 
         boolean reactivated = registrationDAO.updateStatus(eventId, userId, "REGISTERED");
-        if (reactivated) return true;
+        if (reactivated) {
+            return true;
+        }
 
         boolean success = registrationDAO.registerUser(eventId, userId);
         if (!success) {
