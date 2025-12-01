@@ -6,6 +6,15 @@ import net.javaguids.popin.models.User;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+
+import net.javaguids.popin.exceptions.InvalidCredentialsException;
+
+
+import java.util.Optional;
+
+import static org.junit.jupiter.api.Assertions.*;
+
+
 import java.sql.Connection;
 import java.sql.Statement;
 import java.util.Optional;
@@ -51,9 +60,25 @@ class AuthServiceTest {
 
     @Test
     void loginFailsWithWrongPassword() {
-        authService.registerUser("charlie", "pw12345", "ATTENDEE");
-
-        Optional<User> loggedIn = authService.login("charlie", "wrong");
-        assertTrue(loggedIn.isEmpty());
+        assertThrows(InvalidCredentialsException.class, () -> {
+            authService.login("correctUser", "wrongPassword");
+        });
     }
+
+    @Test
+    void registerUserFailsWithBlankUsername() {
+        assertThrows(InvalidCredentialsException.class, () ->
+                authService.registerUser("", "pw123", "ATTENDEE")
+        );
+    }
+
+    @Test
+    void loginFailsForNonExistingUser() {
+        assertThrows(InvalidCredentialsException.class, () ->
+                authService.login("no_such_user", "pw123")
+        );
+    }
+
+
+
 }

@@ -125,4 +125,30 @@ class EventServiceTest {
         List<Event> after = eventDAO.findAll();
         assertTrue(after.isEmpty(), "Event list should be empty after deletion");
     }
+
+
+    @Test
+    void createFreeEventWorks() {
+        boolean created = eventService.createEvent(
+                "Title", "Desc",
+                LocalDateTime.now(),
+                "Venue", 20, 1,
+                null  // free
+        );
+        assertTrue(created);
+    }
+
+
+    @Test
+    void createPaidEventWorks() {
+        boolean created = eventService.createEvent(
+                "Concert", "Live",
+                LocalDateTime.now(),
+                "Hall", 50, 1,
+                12.5
+        );
+        assertTrue(created);
+    }
+
+
 }

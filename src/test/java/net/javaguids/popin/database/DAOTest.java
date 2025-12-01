@@ -115,4 +115,17 @@ class DAOTest {
         assertEquals(1, userEvents.size(), "RegistrationDAO.findByUserId should return 1 event");
         assertEquals(e.getId(), userEvents.get(0).getId());
     }
+
+    @Test
+    void findByIdReturnsNullWhenMissing() {
+        assertNull(eventDAO.findById(9999));
+    }
+
+    @Test
+    void createEventInsertsIntoDB() {
+        Event e = new Event("t","d", LocalDateTime.now(),"v",20,1);
+        assertTrue(eventDAO.createEvent(e));
+    }
+
+
 }
