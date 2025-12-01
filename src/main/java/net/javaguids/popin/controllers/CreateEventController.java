@@ -18,28 +18,25 @@ public class CreateEventController {
     @FXML private TextField titleField;
     @FXML private TextArea descriptionArea;
     @FXML private DatePicker datePicker;
-    @FXML private TextField timeField; // expects "HH:mm"
+    @FXML private TextField timeField;
     @FXML private TextField venueField;
     @FXML private TextField capacityField;
-    @FXML private TextField priceField; // optional
+    @FXML private TextField priceField;
 
     private final EventService eventService = new EventService();
-    private User loggedInUser;      // organizer
-    private Event eventToEdit = null; // if non-null → edit mode
+    private User loggedInUser;
+    private Event eventToEdit = null;
 
     private static final DateTimeFormatter TIME_FORMATTER =
             DateTimeFormatter.ofPattern("HH:mm");
 
-    // Called by parent controller after login
     public void setLoggedInUser(User user) {
         this.loggedInUser = user;
     }
 
-    // Called by MyEventsController when editing an existing event
     public void setEventToEdit(Event event) {
         this.eventToEdit = event;
 
-        // Prefill fields
         titleField.setText(event.getTitle());
         descriptionArea.setText(event.getDescription());
         venueField.setText(event.getVenue());
@@ -61,7 +58,6 @@ public class CreateEventController {
     @FXML
     private void handleCreateEvent() {
         try {
-            // ---------- BASIC TEXT FIELDS ----------
             String title = safeTrim(titleField.getText());
             String description = safeTrim(descriptionArea.getText());
             String venue = safeTrim(venueField.getText());
@@ -70,17 +66,14 @@ public class CreateEventController {
                 showError("Title cannot be blank.");
                 return;
             }
-
             if (venue.isEmpty()) {
                 showError("Venue cannot be blank.");
                 return;
             }
 
-            // ---------- CAPACITY ----------
             int capacity;
             try {
-                String capacityText = safeTrim(capacityField.getText());
-                capacity = Integer.parseInt(capacityText);
+                capacity = Integer.parseInt(safeTrim(capacityField.getText()));
                 if (capacity <= 0) {
                     showError("Capacity must be a positive whole number.");
                     return;
@@ -90,7 +83,6 @@ public class CreateEventController {
                 return;
             }
 
-            // ---------- DATE & TIME ----------
             if (datePicker.getValue() == null) {
                 showError("Please select a date for your event.");
                 return;
@@ -104,7 +96,7 @@ public class CreateEventController {
 
             LocalTime time;
             try {
-                time = LocalTime.parse(timeText, TIME_FORMATTER); // HH:mm
+                time = LocalTime.parse(timeText, TIME_FORMATTER);
             } catch (DateTimeParseException e) {
                 showError("Time must be in format HH:mm.");
                 return;
@@ -112,73 +104,47 @@ public class CreateEventController {
 
             LocalDateTime dateTime = datePicker.getValue().atTime(time);
 
-            // ---------- PRICE (OPTIONAL) ----------
             Double price = null;
             String priceText = safeTrim(priceField.getText());
             if (!priceText.isEmpty()) {
                 try {
                     price = Double.parseDouble(priceText);
                     if (price < 0) {
-                        showError("Price must be a positive number, or leave it blank for a free event.");
+                        showError("Price must be a positive number.");
                         return;
                     }
                 } catch (NumberFormatException e) {
-                    showError("Price must be a number, or leave it blank for free.");
+                    showError("Price must be a number.");
                     return;
                 }
             }
 
-            // ---------- ORGANIZER ----------
             if (loggedInUser == null) {
                 showError("Logged-in organizer information is missing.");
                 return;
             }
-            int organizerId = loggedInUser.getId();
 
-            // ---------- CREATE vs UPDATE ----------
+            int organizerId = loggedInUser.getId();
             boolean success;
+
             if (eventToEdit == null) {
-                // CREATE NEW EVENT
-                success = eventService.createEvent(
-                        title,
-                        description,
-                        dateTime,
-                        venue,
-                        capacity,
-                        organizerId,
-                        price
-                );
+                success = eventService.createEvent(title, description, dateTime, venue, capacity, organizerId, price);
             } else {
-                // UPDATE EXISTING EVENT
-                Event updated = new Event(
-                        eventToEdit.getId(),
-                        title,
-                        description,
-                        dateTime,
-                        venue,
-                        capacity,
-                        eventToEdit.getOrganizerId()
-                );
+                Event updated = new Event(eventToEdit.getId(), title, description, dateTime, venue, capacity, eventToEdit.getOrganizerId());
                 success = eventService.updateEvent(updated, price);
             }
 
             if (success) {
-                showSuccess(eventToEdit == null
-                        ? "Event created successfully!"
-                        : "Event updated successfully!");
+                showSuccess(eventToEdit == null ? "Event created successfully!" : "Event updated successfully!");
                 closeWindow();
             } else {
                 showError("Failed to save event. Please try again.");
             }
 
         } catch (Exception e) {
-            // No stack trace in UI; keep it friendly
-            // (you can log e somewhere if you want, but not required)
             showError("An unexpected error occurred while saving the event.");
         }
     }
-
-    // UI HELPERS
 
     private String safeTrim(String value) {
         return value == null ? "" : value.trim();

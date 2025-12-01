@@ -4,9 +4,9 @@ import javafx.beans.property.SimpleIntegerProperty;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.fxml.FXML;
 import javafx.scene.control.*;
-import javafx.stage.Stage;
 import net.javaguids.popin.database.EventDAO;
 import net.javaguids.popin.models.Event;
+import net.javaguids.popin.utils.SceneManager;
 
 import java.time.format.DateTimeFormatter;
 import java.util.List;
@@ -27,7 +27,7 @@ public class AdminEventListController {
 
     @FXML
     public void initialize() {
-        // Guard so a miswired FXML won't crash everything
+
         if (eventTable == null ||
                 idColumn == null ||
                 titleColumn == null ||
@@ -49,7 +49,8 @@ public class AdminEventListController {
                         c.getValue().getDateTime() != null
                                 ? c.getValue().getDateTime().format(formatter)
                                 : ""
-                ));
+                )
+        );
 
         venueColumn.setCellValueFactory(c ->
                 new SimpleStringProperty(c.getValue().getVenue()));
@@ -71,6 +72,7 @@ public class AdminEventListController {
     @FXML
     private void handleDeleteEvent() {
         Event selected = eventTable.getSelectionModel().getSelectedItem();
+
         if (selected == null) {
             showAlert(Alert.AlertType.WARNING,
                     "No selection",
@@ -82,8 +84,10 @@ public class AdminEventListController {
         confirm.setTitle("Delete Event");
         confirm.setHeaderText("Confirm delete");
         confirm.setContentText("Delete event: \"" + selected.getTitle() + "\"?");
+
         confirm.showAndWait().ifPresent(result -> {
             if (result.getButtonData() == ButtonBar.ButtonData.OK_DONE) {
+
                 boolean deleted = eventDAO.deleteEvent(selected.getId());
                 if (deleted) {
                     showAlert(Alert.AlertType.INFORMATION,
@@ -101,8 +105,8 @@ public class AdminEventListController {
 
     @FXML
     private void handleClose() {
-        Stage stage = (Stage) eventTable.getScene().getWindow();
-        stage.close();
+        // MUST include a title
+        SceneManager.switchTo("adminDashboard", "Admin Dashboard");
     }
 
     private void showAlert(Alert.AlertType type, String header, String msg) {

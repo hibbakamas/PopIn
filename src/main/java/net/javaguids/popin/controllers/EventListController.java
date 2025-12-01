@@ -3,12 +3,7 @@ package net.javaguids.popin.controllers;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.fxml.FXML;
-import javafx.scene.control.Alert;
-import javafx.scene.control.Button;
-import javafx.scene.control.ButtonType;
-import javafx.scene.control.ListCell;
-import javafx.scene.control.ListView;
-import javafx.scene.control.TextField;
+import javafx.scene.control.*;
 import net.javaguids.popin.database.ReportDAO;
 import net.javaguids.popin.models.Event;
 import net.javaguids.popin.models.User;
@@ -22,21 +17,16 @@ public class EventListController {
     @FXML private ListView<Event> eventListView;
     @FXML private TextField searchField;
     @FXML private Button registerButton;
-
-    // NEW:
     @FXML private Button reportButton;
 
     private final EventService eventService = new EventService();
     private final RegistrationService registrationService = new RegistrationService();
-    private final ReportDAO reportDAO = new ReportDAO(); // NEW
+    private final ReportDAO reportDAO = new ReportDAO();
 
-    // Holds ALL events so we can filter them
-    private List<Event> fullEventList;
+    private List<Event> fullEventList;     // all events for filtering
+    private User loggedInUser;             // injected by SceneManager after switching
 
-    // Logged‑in attendee (set from AttendeeDashboardController)
-    private User loggedInUser;
-
-    // Called from AttendeeDashboardController
+    // Called by SceneManager AFTER Scene is loaded
     public void setLoggedInUser(User user) {
         this.loggedInUser = user;
         updateRegisterButtonState();
@@ -47,12 +37,12 @@ public class EventListController {
     public void initialize() {
         loadEvents();
 
-        // Live search listener
-        searchField.textProperty().addListener((obs, oldV, newV) -> {
-            filterEvents(newV);
-        });
+        // Live search
+        searchField.textProperty().addListener((obs, oldV, newV) ->
+                filterEvents(newV)
+        );
 
-        // Cell formatting
+        // Display formatting
         eventListView.setCellFactory(lv -> new ListCell<>() {
             @Override
             protected void updateItem(Event event, boolean empty) {
@@ -65,43 +55,42 @@ public class EventListController {
             }
         });
 
-        // Selection change → update buttons
-        eventListView.getSelectionModel().selectedItemProperty().addListener(
-                (obs, oldEvent, newEvent) -> {
-                    updateRegisterButtonState();
-                    updateReportButtonState();
-                }
-        );
+        // When selecting an event, refresh button states
+        eventListView.getSelectionModel().selectedItemProperty().addListener((obs, oldEvent, newEvent) -> {
+            updateRegisterButtonState();
+            updateReportButtonState();
+        });
     }
 
-    /** Load full event list */
+    // LOAD EVENTS
     private void loadEvents() {
         try {
             fullEventList = eventService.getUpcomingEvents();
-            ObservableList<Event> observableList =
-                    FXCollections.observableArrayList(fullEventList);
+            ObservableList<Event> observableList = FXCollections.observableArrayList(fullEventList);
             eventListView.setItems(observableList);
         } catch (Exception e) {
             showError("Could not load events: " + e.getMessage());
         }
     }
 
-    /** Filter events live by title */
+    // FILTER SEARCH
     private void filterEvents(String keyword) {
         if (keyword == null || keyword.isBlank()) {
             eventListView.setItems(FXCollections.observableArrayList(fullEventList));
             return;
         }
+
         String lower = keyword.toLowerCase();
         List<Event> filtered = fullEventList.stream()
                 .filter(event -> event.getTitle().toLowerCase().contains(lower))
                 .toList();
+
         eventListView.setItems(FXCollections.observableArrayList(filtered));
     }
 
-    // =========================
-    // REGISTER / UNREGISTER BTN
-    // =========================
+    // ======================
+    // REGISTER BUTTON
+    // ======================
     private void updateRegisterButtonState() {
         Event selected = eventListView.getSelectionModel().getSelectedItem();
 
@@ -117,10 +106,8 @@ public class EventListController {
             return;
         }
 
-        boolean isRegistered =
-                registrationService.isUserRegistered(selected.getId(), loggedInUser.getId());
-        boolean isFull =
-                registrationService.isEventFull(selected.getId());
+        boolean isRegistered = registrationService.isUserRegistered(selected.getId(), loggedInUser.getId());
+        boolean isFull = registrationService.isEventFull(selected.getId());
 
         if (isRegistered) {
             registerButton.setText("Unregister");
@@ -137,12 +124,9 @@ public class EventListController {
     @FXML
     private void handleToggleRegistration() {
         Event selected = eventListView.getSelectionModel().getSelectedItem();
-        if (selected == null || loggedInUser == null) {
-            return;
-        }
+        if (selected == null || loggedInUser == null) return;
 
-        boolean isRegistered =
-                registrationService.isUserRegistered(selected.getId(), loggedInUser.getId());
+        boolean isRegistered = registrationService.isUserRegistered(selected.getId(), loggedInUser.getId());
 
         try {
             if (isRegistered) {
@@ -156,32 +140,28 @@ public class EventListController {
             showError(e.getMessage());
         }
 
-        // Refresh button label+state after action
         updateRegisterButtonState();
     }
 
-    // =========================
-    // REPORT EVENT BUTTON
-    // =========================
+    // ======================
+    // REPORT BUTTON
+    // ======================
     private void updateReportButtonState() {
         if (reportButton == null) return;
 
         Event selected = eventListView.getSelectionModel().getSelectedItem();
 
-        // No user or no event selected → disable
         if (loggedInUser == null || selected == null) {
             reportButton.setDisable(true);
             return;
         }
 
-        // Only attendees can report (organizers/admins shouldn't)
-        String roleName = loggedInUser.getRole().getName();
-        if (!"ATTENDEE".equalsIgnoreCase(roleName)) {
+        // Only ATTENDEE can report
+        if (!"ATTENDEE".equalsIgnoreCase(loggedInUser.getRole().getName())) {
             reportButton.setDisable(true);
             return;
         }
 
-        // If they've already reported, we could disable it too (optional)
         boolean alreadyReported = reportDAO.hasUserReported(selected.getId(), loggedInUser.getId());
         reportButton.setDisable(alreadyReported);
     }
@@ -195,13 +175,7 @@ public class EventListController {
             return;
         }
 
-        if (loggedInUser == null) {
-            showError("You must be logged in to report an event.");
-            return;
-        }
-
-        String roleName = loggedInUser.getRole().getName();
-        if (!"ATTENDEE".equalsIgnoreCase(roleName)) {
+        if (loggedInUser == null || !"ATTENDEE".equalsIgnoreCase(loggedInUser.getRole().getName())) {
             showError("Only attendees can report events.");
             return;
         }
@@ -215,6 +189,7 @@ public class EventListController {
         Alert confirm = new Alert(Alert.AlertType.CONFIRMATION);
         confirm.setHeaderText("Report Event");
         confirm.setContentText("Are you sure you want to report \"" + selected.getTitle() + "\"?");
+
         confirm.showAndWait().ifPresent(result -> {
             if (result == ButtonType.OK) {
                 boolean ok = reportDAO.addReport(selected.getId(), loggedInUser.getId());
@@ -228,9 +203,9 @@ public class EventListController {
         });
     }
 
-    // =========================
+    // ======================
     // ALERT HELPERS
-    // =========================
+    // ======================
     private void showError(String msg) {
         Alert alert = new Alert(Alert.AlertType.ERROR);
         alert.setHeaderText("Error");

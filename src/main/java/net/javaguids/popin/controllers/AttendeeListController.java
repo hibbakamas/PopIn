@@ -21,24 +21,26 @@ public class AttendeeListController {
 
     private final RegistrationDAO registrationDAO = new RegistrationDAO();
     private final UserDAO userDAO = new UserDAO();
+
     private Event event;
 
+    /** Called right after switching scenes */
     public void setEvent(Event event) {
         this.event = event;
         loadAttendees();
     }
 
     private void loadAttendees() {
-        if (event == null) {
-            return;
-        }
+        if (event == null) return;
 
         try {
             List<Registration> allRegs = registrationDAO.listAll();
             List<String> usernames = new ArrayList<>();
 
             for (Registration reg : allRegs) {
-                if (reg.getEventId() != event.getId()) continue;
+
+                if (reg.getEventId() != event.getId())
+                    continue;
 
                 String status = reg.getStatus();
                 if (!"REGISTERED".equalsIgnoreCase(status)
@@ -52,7 +54,8 @@ public class AttendeeListController {
                 }
             }
 
-            ObservableList<String> list = FXCollections.observableArrayList(usernames);
+            ObservableList<String> list =
+                    FXCollections.observableArrayList(usernames);
             attendeeListView.setItems(list);
 
         } catch (Exception e) {

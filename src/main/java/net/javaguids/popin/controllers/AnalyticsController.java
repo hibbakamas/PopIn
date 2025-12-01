@@ -2,13 +2,13 @@ package net.javaguids.popin.controllers;
 
 import javafx.fxml.FXML;
 import javafx.scene.control.Label;
-import javafx.stage.Stage;
 import net.javaguids.popin.database.EventDAO;
 import net.javaguids.popin.database.RegistrationDAO;
 import net.javaguids.popin.database.UserDAO;
 import net.javaguids.popin.models.Event;
 import net.javaguids.popin.models.PaidEvent;
 import net.javaguids.popin.models.User;
+import net.javaguids.popin.utils.SceneManager;
 
 import java.util.Collections;
 import java.util.List;
@@ -38,8 +38,8 @@ public class AnalyticsController {
 
     private void loadStats() {
         // --------- BASIC TOTALS ---------
-        int userCount = userDAO.countAll();                 // from UserDAO
-        int eventCount = eventDAO.countAll();               // from EventDAO
+        int userCount = userDAO.countAll();              // from UserDAO
+        int eventCount = eventDAO.countAll();            // from EventDAO
         int registrationCount = registrationDAO.listAll().size(); // from RegistrationDAO
 
         totalUsersLabel.setText("Total users: " + userCount);
@@ -48,7 +48,6 @@ public class AnalyticsController {
 
         // --------- MOST ACTIVE ORGANIZER (by event count) ---------
         List<Event> allEvents = eventDAO.findAll();
-
         if (allEvents.isEmpty()) {
             mostActiveOrganizerLabel.setText("Most active organizer: no events yet.");
         } else {
@@ -60,9 +59,11 @@ public class AnalyticsController {
 
             int organizerId = topEntry.getKey();
             long organizerEvents = topEntry.getValue();
-
             User organizer = userDAO.findById(organizerId);
-            String name = (organizer != null) ? organizer.getUsername() : ("User #" + organizerId);
+
+            String name = (organizer != null)
+                    ? organizer.getUsername()
+                    : ("User #" + organizerId);
 
             mostActiveOrganizerLabel.setText(
                     "Most active organizer: " + name + " (" + organizerEvents + " event(s))"
@@ -86,7 +87,6 @@ public class AnalyticsController {
 
         // --------- MOST POPULAR UPCOMING EVENT (by registrations) ---------
         List<Event> upcoming = eventDAO.findAllUpcoming();
-
         Event mostPopular = null;
         int maxRegistrations = 0;
 
@@ -111,7 +111,7 @@ public class AnalyticsController {
 
     @FXML
     private void handleClose() {
-        Stage stage = (Stage) totalUsersLabel.getScene().getWindow();
-        stage.close();
+        // Instead of closing the Stage, navigate back via SceneManager
+        SceneManager.switchTo("adminDashboard", "Admin Dashboard");
     }
 }

@@ -1,9 +1,5 @@
 package net.javaguids.popin.controllers;
 
-import javafx.fxml.FXMLLoader;
-import javafx.scene.Parent;
-import javafx.scene.Scene;
-import javafx.stage.Stage;
 import javafx.fxml.FXML;
 import javafx.scene.control.Alert;
 import javafx.scene.control.ButtonType;
@@ -15,6 +11,7 @@ import net.javaguids.popin.models.PaidEvent;
 import net.javaguids.popin.models.User;
 import net.javaguids.popin.services.EventService;
 import net.javaguids.popin.services.RegistrationService;
+import net.javaguids.popin.utils.SceneManager;
 
 public class EventDetailsController {
 
@@ -24,6 +21,7 @@ public class EventDetailsController {
     @FXML private Label venueLabel;
     @FXML private Label priceLabel;
     @FXML private Label capacityLabel;
+
     @FXML private Button registerButton;
     @FXML private Button cancelButton;
     @FXML private Button checkInButton;
@@ -35,6 +33,7 @@ public class EventDetailsController {
 
     private Event event;
     private User loggedInUser;
+
     private final RegistrationService registrationService = new RegistrationService();
     private final EventService eventService = new EventService();
     private final ReportDAO reportDAO = new ReportDAO(); // NEW
@@ -70,6 +69,7 @@ public class EventDetailsController {
     // -----------------------------------------
     private void updateButtonsForRole() {
         if (loggedInUser == null) return;
+
         String role = loggedInUser.getRole().getName();
 
         switch (role) {
@@ -80,9 +80,14 @@ public class EventDetailsController {
     }
 
     private void setupAttendeeButtons() {
-        registerButton.setVisible(!registrationService.isEventFull(event.getId())
-                && !registrationService.isUserRegistered(event.getId(), loggedInUser.getId()));
-        cancelButton.setVisible(registrationService.isUserRegistered(event.getId(), loggedInUser.getId()));
+        registerButton.setVisible(
+                !registrationService.isEventFull(event.getId())
+                        && !registrationService.isUserRegistered(event.getId(), loggedInUser.getId())
+        );
+        cancelButton.setVisible(
+                registrationService.isUserRegistered(event.getId(), loggedInUser.getId())
+        );
+
         checkInButton.setVisible(false);
         editButton.setVisible(false);
         deleteButton.setVisible(false);
@@ -123,7 +128,8 @@ public class EventDetailsController {
     // -----------------------------------------
     // BUTTON ACTIONS
     // -----------------------------------------
-    @FXML private void handleRegister() {
+    @FXML
+    private void handleRegister() {
         try {
             registrationService.registerUser(event.getId(), loggedInUser.getId());
             showSuccess("You are now registered!");
@@ -133,7 +139,8 @@ public class EventDetailsController {
         }
     }
 
-    @FXML private void handleCancelRegistration() {
+    @FXML
+    private void handleCancelRegistration() {
         try {
             registrationService.cancelRegistration(event.getId(), loggedInUser.getId());
             showSuccess("Your registration has been cancelled.");
@@ -143,7 +150,8 @@ public class EventDetailsController {
         }
     }
 
-    @FXML private void handleCheckIn() {
+    @FXML
+    private void handleCheckIn() {
         try {
             registrationService.checkInUser(event.getId(), loggedInUser.getId());
             showSuccess("User checked in successfully.");
@@ -152,33 +160,35 @@ public class EventDetailsController {
         }
     }
 
-    @FXML private void handleEditEvent() {
+    @FXML
+    private void handleEditEvent() {
         showInfo("Edit event not implemented yet.");
     }
 
-    @FXML private void handleDeleteEvent() {
+    @FXML
+    private void handleDeleteEvent() {
         showInfo("Delete event not implemented yet.");
     }
 
-    @FXML private void handleViewAttendees() {
+    @FXML
+    private void handleViewAttendees() {
         try {
-            FXMLLoader loader = new FXMLLoader(getClass().getResource("/net/javaguids/popin/views/attendee-list.fxml"));
-            Parent root = loader.load();
-            AttendeeListController controller = loader.getController();
-            controller.setEvent(event);
-
-            Stage stage = new Stage();
-            stage.setTitle("Attendee List");
-            stage.setScene(new Scene(root));
-            stage.show();
+            // use central SceneManager instead of opening a new Stage
+            AttendeeListController controller =
+                    SceneManager.switchTo("attendeeList", "Attendee List");
+            if (controller != null) {
+                controller.setEvent(event);
+            }
         } catch (Exception e) {
             showError("Could not open attendee list: " + e.getMessage());
         }
     }
 
     // NEW: attendee reporting
-    @FXML private void handleReportEvent() {
-        if (loggedInUser == null || !"ATTENDEE".equalsIgnoreCase(loggedInUser.getRole().getName())) {
+    @FXML
+    private void handleReportEvent() {
+        if (loggedInUser == null
+                || !"ATTENDEE".equalsIgnoreCase(loggedInUser.getRole().getName())) {
             showError("Only attendees can report events.");
             return;
         }
