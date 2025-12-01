@@ -12,11 +12,18 @@ public class EventService implements EventServiceInterface {
     private final EventDAO eventDAO = new EventDAO();
 
     @Override
-    public boolean createEvent(String title, String description, LocalDateTime dateTime,
-                               String venue, int capacity, int organizerId, Double price) {
+    public boolean createEvent(String title,
+                               String description,
+                               LocalDateTime dateTime,
+                               String venue,
+                               int capacity,
+                               int organizerId,
+                               Double price) {
+
         Event event = (price != null)
                 ? new PaidEvent(title, description, dateTime, venue, capacity, organizerId, price)
                 : new Event(title, description, dateTime, venue, capacity, organizerId);
+
         return eventDAO.createEvent(event);
     }
 
