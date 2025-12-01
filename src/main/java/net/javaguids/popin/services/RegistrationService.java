@@ -4,19 +4,17 @@ import net.javaguids.popin.database.EventDAO;
 import net.javaguids.popin.database.RegistrationDAO;
 import net.javaguids.popin.models.Event;
 
-public class RegistrationService {
+public class RegistrationService implements RegistrationServiceInterface {
 
     private final RegistrationDAO registrationDAO = new RegistrationDAO();
     private final EventDAO eventDAO = new EventDAO();
 
-    // REGISTER USER FOR EVENT
+    @Override
     public boolean registerUser(int eventId, int userId) {
-        // Check if already REGISTERED
         if (registrationDAO.isUserRegistered(eventId, userId)) {
             throw new IllegalStateException("You are already registered for this event.");
         }
 
-        // Check event capacity
         Event event = eventDAO.findAllUpcoming().stream()
                 .filter(e -> e.getId() == eventId)
                 .findFirst()
@@ -31,14 +29,9 @@ public class RegistrationService {
             throw new IllegalStateException("This event is full.");
         }
 
-        // 🔥 Try to re-activate an existing row first (e.g. was CANCELLED)
         boolean reactivated = registrationDAO.updateStatus(eventId, userId, "REGISTERED");
-        if (reactivated) {
-            // existing registration row (CANCELLED or CHECKED_IN) changed back to REGISTERED
-            return true;
-        }
+        if (reactivated) return true;
 
-        // If no existing row, insert a new one
         boolean success = registrationDAO.registerUser(eventId, userId);
         if (!success) {
             throw new RuntimeException("Could not register for event.");
@@ -46,7 +39,7 @@ public class RegistrationService {
         return true;
     }
 
-    // CANCEL REGISTRATION
+    @Override
     public boolean cancelRegistration(int eventId, int userId) {
         if (!registrationDAO.isUserRegistered(eventId, userId)) {
             throw new IllegalStateException("You are not registered for this event.");
@@ -54,7 +47,7 @@ public class RegistrationService {
         return registrationDAO.updateStatus(eventId, userId, "CANCELLED");
     }
 
-    // CHECK-IN USER (organizer/admin)
+    @Override
     public boolean checkInUser(int eventId, int userId) {
         if (!registrationDAO.isUserRegistered(eventId, userId)) {
             throw new IllegalStateException("User is not registered for this event.");
@@ -62,16 +55,18 @@ public class RegistrationService {
         return registrationDAO.updateStatus(eventId, userId, "CHECKED_IN");
     }
 
-    // HELPER: SEE IF FULL
+    @Override
     public boolean isEventFull(int eventId) {
         Event event = eventDAO.findAllUpcoming().stream()
                 .filter(e -> e.getId() == eventId)
                 .findFirst()
                 .orElse(null);
+
         if (event == null) return true;
         return registrationDAO.countRegistered(eventId) >= event.getCapacity();
     }
 
+    @Override
     public boolean isUserRegistered(int eventId, int userId) {
         return registrationDAO.isUserRegistered(eventId, userId);
     }

@@ -13,4 +13,9 @@ public class Admin extends User {
     public Admin(String username, String passwordHash) {
         super(username, passwordHash, new Role("ADMIN"));
     }
+
+    @Override
+    public String getDashboardLabel() {
+        return "Admin Dashboard";
+    }
 }

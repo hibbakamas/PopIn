@@ -7,8 +7,7 @@ import net.javaguids.popin.utils.PasswordHasher;
 
 import java.util.Optional;
 
-public class AuthService {
-
+public class AuthService implements AuthServiceInterface {
     private final UserDAO userDAO = new UserDAO();
 
     /**
@@ -41,7 +40,9 @@ public class AuthService {
         String normalizedRole = roleName.trim().toUpperCase();
         Role role = new Role(normalizedRole);
         String hash = PasswordHasher.hashPassword(plainPassword);
-        User user = new User(username, hash, role);
+
+        // use factory → Admin / Organizer / Attendee instance
+        User user = User.create(username, hash, role);
 
         return userDAO.createUser(user);
     }
