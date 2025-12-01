@@ -1,10 +1,9 @@
 package net.javaguids.popin.database;
 
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.Statement;
+import net.javaguids.popin.exceptions.DatabaseOperationException;
+import net.javaguids.popin.exceptions.DatabaseOperationException;
+
+import java.sql.*;
 
 /**
  * Handles event_attendance table:
@@ -25,13 +24,15 @@ public class AttendanceDAO {
                 status   TEXT NOT NULL,   -- GOING / INTERESTED / FAVORITE
                 UNIQUE(event_id, user_id)
             );
-            """;
+        """;
 
         try (Connection conn = Database.getConnection();
              Statement stmt = conn.createStatement()) {
+
             stmt.execute(sql);
+
         } catch (SQLException e) {
-            e.printStackTrace();
+            throw new DatabaseOperationException("Failed to create event_attendance table.", e);
         }
     }
 
@@ -60,15 +61,17 @@ public class AttendanceDAO {
             stmt.setInt(2, userId);
             int rows = stmt.executeUpdate();
             return rows > 0;
+
         } catch (SQLException e) {
-            e.printStackTrace();
+            throw new DatabaseOperationException(
+                    "Error clearing attendance for event " + eventId + ", user " + userId, e);
         }
-        return false;
     }
 
     /** How many users marked status = 'GOING' for this event. */
     public int countGoingByEventId(int eventId) {
         String sql = "SELECT COUNT(*) FROM event_attendance WHERE event_id = ? AND status = 'GOING'";
+
         try (Connection conn = Database.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
 
@@ -77,14 +80,15 @@ public class AttendanceDAO {
             if (rs.next()) {
                 return rs.getInt(1);
             }
+            return 0;
+
         } catch (SQLException e) {
-            e.printStackTrace();
+            throw new DatabaseOperationException(
+                    "Error counting GOING attendance for event " + eventId, e);
         }
-        return 0;
     }
 
     // ---------- INTERNAL HELPER ----------
-
     /**
      * Try to UPDATE status first; if nothing updated, INSERT a new row.
      */
@@ -116,9 +120,9 @@ public class AttendanceDAO {
             }
 
         } catch (SQLException e) {
-            e.printStackTrace();
+            throw new DatabaseOperationException(
+                    "Error setting attendance status '" + status + "' for event " + eventId +
+                            ", user " + userId, e);
         }
-
-        return false;
     }
 }
