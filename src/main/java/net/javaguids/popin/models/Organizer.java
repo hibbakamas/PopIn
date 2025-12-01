@@ -13,4 +13,9 @@ public class Organizer extends User {
     public Organizer(String username, String passwordHash) {
         super(username, passwordHash, new Role("ORGANIZER"));
     }
+
+    @Override
+    public String getDashboardLabel() {
+        return "Organizer Dashboard";
+    }
 }

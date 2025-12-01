@@ -11,11 +11,10 @@ import net.javaguids.popin.database.EventDAO;
 import net.javaguids.popin.models.Event;
 import net.javaguids.popin.models.User;
 
-public class AdminDashboardController {
+public class AdminDashboardController implements DashboardController {
 
     private User loggedInAdmin;
 
-    // === TABLE PREVIEW IN DASHBOARD ===
     @FXML private TableView<Event> eventsTable;
     @FXML private TableColumn<Event, String> colTitle;
     @FXML private TableColumn<Event, String> colOrganizer;
@@ -24,7 +23,6 @@ public class AdminDashboardController {
 
     private final EventDAO eventDAO = new EventDAO();
 
-    // Runs automatically when FXML loads
     @FXML
     public void initialize() {
         if (eventsTable == null) {
@@ -33,7 +31,6 @@ public class AdminDashboardController {
         }
         System.out.println("Admin Dashboard → Initializing preview table");
 
-        // Tell columns what to display
         colTitle.setCellValueFactory(data ->
                 new javafx.beans.property.SimpleStringProperty(data.getValue().getTitle()));
 
@@ -62,18 +59,15 @@ public class AdminDashboardController {
         }
     }
 
-    // Called after login to inject admin user
+    @Override
     public void setLoggedInUser(User user) {
         this.loggedInAdmin = user;
         System.out.println("Logged in admin: " + user.getUsername());
         refreshPreview();
     }
 
-    // BUTTON HANDLERS --------------
-
     @FXML
     private void handleViewAllEvents() {
-        System.out.println("Admin clicked: View All Events");
         openScene("/net/javaguids/popin/views/admin-event-list.fxml", "All Events (Admin)");
     }
 
@@ -89,16 +83,12 @@ public class AdminDashboardController {
 
     @FXML
     private void handleManageReports() {
-        System.out.println("Admin clicked: Manage Flags / Reports");
         openScene("/net/javaguids/popin/views/reports-view.fxml", "Reported Events");
     }
 
     @FXML
     private void handleProfile() {
-        if (loggedInAdmin == null) {
-            System.err.println("No logged-in admin set for AdminDashboardController.");
-            return;
-        }
+        if (loggedInAdmin == null) return;
         try {
             FXMLLoader loader = new FXMLLoader(
                     getClass().getResource("/net/javaguids/popin/views/profile.fxml"));
@@ -111,20 +101,29 @@ public class AdminDashboardController {
             stage.setTitle("My Profile");
             stage.setScene(new Scene(root));
             stage.show();
-
-            System.out.println("Opened: My Profile");
         } catch (Exception e) {
-            System.err.println("❌ Error loading profile.fxml");
             e.printStackTrace();
         }
     }
 
     @FXML
     private void handleLogout() {
-        openScene("/net/javaguids/popin/views/login.fxml", "PopIn Login");
+        try {
+            FXMLLoader loader = new FXMLLoader(
+                    getClass().getResource("/net/javaguids/popin/views/login.fxml"));
+            Parent root = loader.load();
+
+            // Reuse same Stage instead of opening a new one
+            Stage stage = (Stage) eventsTable.getScene().getWindow();
+            stage.setTitle("PopIn – Login");
+            stage.setScene(new Scene(root));
+            stage.centerOnScreen();
+            stage.show();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 
-    // OPEN NEW WINDOWS ----------------
     private void openScene(String fxml, String title) {
         try {
             FXMLLoader loader = new FXMLLoader(getClass().getResource(fxml));
@@ -133,9 +132,7 @@ public class AdminDashboardController {
             stage.setTitle(title);
             stage.setScene(new Scene(root));
             stage.show();
-            System.out.println("Opened: " + title);
         } catch (Exception e) {
-            System.err.println("❌ Error loading scene: " + fxml);
             e.printStackTrace();
         }
     }

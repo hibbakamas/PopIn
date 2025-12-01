@@ -13,4 +13,9 @@ public class Attendee extends User {
     public Attendee(String username, String passwordHash) {
         super(username, passwordHash, new Role("ATTENDEE"));
     }
+
+    @Override
+    public String getDashboardLabel() {
+        return "Attendee Dashboard";
+    }
 }

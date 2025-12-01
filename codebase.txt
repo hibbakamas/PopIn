@@ -1,0 +1,4079 @@
+﻿=== C:\Users\hibba\IdeaProjects\PopIn\src\module-info.java ===
+module net.javaguids.popin {
+    requires javafx.controls;
+    requires javafx.fxml;
+    requires javafx.web;
+
+    requires org.controlsfx.controls;
+    requires org.kordamp.bootstrapfx.core;
+    requires eu.hansolo.tilesfx;
+    requires java.sql;    // needed later for database
+
+    // OPEN packages so FXML can access fields, controllers, etc.
+    opens net.javaguids.popin to javafx.fxml;
+    opens net.javaguids.popin.controllers to javafx.fxml;
+    opens net.javaguids.popin.models to javafx.base;
+
+    // EXPORT packages used by other modules / JavaFX loader
+    exports net.javaguids.popin;
+    exports net.javaguids.popin.controllers;
+}
+=== C:\Users\hibba\IdeaProjects\PopIn\src\main\java\net\javaguids\popin\Launcher.java ===
+package net.javaguids.popin;
+
+import javafx.application.Application;
+
+public class Launcher {
+    public static void main(String[] args) {
+        Application.launch(MainApp.class, args);
+    }
+}
+=== C:\Users\hibba\IdeaProjects\PopIn\src\main\java\net\javaguids\popin\MainApp.java ===
+package net.javaguids.popin;
+
+import javafx.application.Application;
+import javafx.fxml.FXMLLoader;
+import javafx.scene.Parent;
+import javafx.scene.Scene;
+import javafx.stage.Stage;
+
+public class MainApp extends Application {
+
+    @Override
+    public void start(Stage stage) throws Exception {
+        FXMLLoader loader = new FXMLLoader(
+                getClass().getResource("/net/javaguids/popin/views/login.fxml")
+        );
+        Parent root = loader.load();
+
+        Scene scene = new Scene(root);
+        stage.setTitle("PopIn â€“ Login");
+        stage.setScene(scene);
+
+        // Let JavaFX size the window to fit the FXML
+        stage.sizeToScene();
+
+        stage.show();
+    }
+
+    public static void main(String[] args) {
+        launch();
+    }
+}
+=== C:\Users\hibba\IdeaProjects\PopIn\src\main\java\net\javaguids\popin\controllers\AdminDashboardController.java ===
+package net.javaguids.popin.controllers;
+
+import javafx.fxml.FXML;
+import javafx.fxml.FXMLLoader;
+import javafx.scene.Parent;
+import javafx.scene.Scene;
+import javafx.scene.control.TableColumn;
+import javafx.scene.control.TableView;
+import javafx.stage.Stage;
+import net.javaguids.popin.database.EventDAO;
+import net.javaguids.popin.models.Event;
+import net.javaguids.popin.models.User;
+
+public class AdminDashboardController {
+
+    private User loggedInAdmin;
+
+    // === TABLE PREVIEW IN DASHBOARD ===
+    @FXML private TableView<Event> eventsTable;
+    @FXML private TableColumn<Event, String> colTitle;
+    @FXML private TableColumn<Event, String> colOrganizer;
+    @FXML private TableColumn<Event, String> colDate;
+    @FXML private TableColumn<Event, Number> colRegistrations;
+
+    private final EventDAO eventDAO = new EventDAO();
+
+    // Runs automatically when FXML loads
+    @FXML
+    public void initialize() {
+        if (eventsTable == null) {
+            System.out.println("âš  eventsTable is NULL â€” preview table not loaded in this view");
+            return;
+        }
+        System.out.println("Admin Dashboard â†’ Initializing preview table");
+
+        // Tell columns what to display
+        colTitle.setCellValueFactory(data ->
+                new javafx.beans.property.SimpleStringProperty(data.getValue().getTitle()));
+
+        colOrganizer.setCellValueFactory(data ->
+                new javafx.beans.property.SimpleStringProperty(
+                        String.valueOf(data.getValue().getOrganizerId())
+                ));
+
+        colDate.setCellValueFactory(data ->
+                new javafx.beans.property.SimpleStringProperty(
+                        data.getValue().getDateTime().toString()
+                ));
+
+        colRegistrations.setCellValueFactory(data ->
+                new javafx.beans.property.SimpleIntegerProperty(
+                        eventDAO.countRegistered(data.getValue().getId())
+                ));
+
+        refreshPreview();
+    }
+
+    private void refreshPreview() {
+        if (eventsTable != null) {
+            System.out.println("Refreshing events preview...");
+            eventsTable.getItems().setAll(eventDAO.findAll());
+        }
+    }
+
+    // Called after login to inject admin user
+    public void setLoggedInUser(User user) {
+        this.loggedInAdmin = user;
+        System.out.println("Logged in admin: " + user.getUsername());
+        refreshPreview();
+    }
+
+    // BUTTON HANDLERS --------------
+
+    @FXML
+    private void handleViewAllEvents() {
+        System.out.println("Admin clicked: View All Events");
+        openScene("/net/javaguids/popin/views/admin-event-list.fxml", "All Events (Admin)");
+    }
+
+    @FXML
+    private void handleViewAllUsers() {
+        openScene("/net/javaguids/popin/views/user-list.fxml", "All Users");
+    }
+
+    @FXML
+    private void handleAnalytics() {
+        openScene("/net/javaguids/popin/views/analytics.fxml", "Analytics");
+    }
+
+    @FXML
+    private void handleManageReports() {
+        System.out.println("Admin clicked: Manage Flags / Reports");
+        openScene("/net/javaguids/popin/views/reports-view.fxml", "Reported Events");
+    }
+
+    @FXML
+    private void handleProfile() {
+        if (loggedInAdmin == null) {
+            System.err.println("No logged-in admin set for AdminDashboardController.");
+            return;
+        }
+        try {
+            FXMLLoader loader = new FXMLLoader(
+                    getClass().getResource("/net/javaguids/popin/views/profile.fxml"));
+            Parent root = loader.load();
+
+            ProfileController controller = loader.getController();
+            controller.setLoggedInUser(loggedInAdmin);
+
+            Stage stage = new Stage();
+            stage.setTitle("My Profile");
+            stage.setScene(new Scene(root));
+            stage.show();
+
+            System.out.println("Opened: My Profile");
+        } catch (Exception e) {
+            System.err.println("âŒ Error loading profile.fxml");
+            e.printStackTrace();
+        }
+    }
+
+    @FXML
+    private void handleLogout() {
+        openScene("/net/javaguids/popin/views/login.fxml", "PopIn Login");
+    }
+
+    // OPEN NEW WINDOWS ----------------
+    private void openScene(String fxml, String title) {
+        try {
+            FXMLLoader loader = new FXMLLoader(getClass().getResource(fxml));
+            Parent root = loader.load();
+            Stage stage = new Stage();
+            stage.setTitle(title);
+            stage.setScene(new Scene(root));
+            stage.show();
+            System.out.println("Opened: " + title);
+        } catch (Exception e) {
+            System.err.println("âŒ Error loading scene: " + fxml);
+            e.printStackTrace();
+        }
+    }
+}
+=== C:\Users\hibba\IdeaProjects\PopIn\src\main\java\net\javaguids\popin\controllers\AdminEventListController.java ===
+package net.javaguids.popin.controllers;
+
+import javafx.beans.property.SimpleIntegerProperty;
+import javafx.beans.property.SimpleStringProperty;
+import javafx.fxml.FXML;
+import javafx.scene.control.*;
+import javafx.stage.Stage;
+import net.javaguids.popin.database.EventDAO;
+import net.javaguids.popin.models.Event;
+
+import java.time.format.DateTimeFormatter;
+import java.util.List;
+
+public class AdminEventListController {
+
+    @FXML private TableView<Event> eventTable;
+    @FXML private TableColumn<Event, Number> idColumn;
+    @FXML private TableColumn<Event, String> titleColumn;
+    @FXML private TableColumn<Event, String> dateColumn;
+    @FXML private TableColumn<Event, String> venueColumn;
+    @FXML private TableColumn<Event, Number> capacityColumn;
+    @FXML private TableColumn<Event, Number> organizerIdColumn;
+
+    private final EventDAO eventDAO = new EventDAO();
+    private final DateTimeFormatter formatter =
+            DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
+
+    @FXML
+    public void initialize() {
+        // Guard so a miswired FXML won't crash everything
+        if (eventTable == null ||
+                idColumn == null ||
+                titleColumn == null ||
+                dateColumn == null ||
+                venueColumn == null ||
+                capacityColumn == null ||
+                organizerIdColumn == null) {
+            return;
+        }
+
+        idColumn.setCellValueFactory(c ->
+                new SimpleIntegerProperty(c.getValue().getId()));
+
+        titleColumn.setCellValueFactory(c ->
+                new SimpleStringProperty(c.getValue().getTitle()));
+
+        dateColumn.setCellValueFactory(c ->
+                new SimpleStringProperty(
+                        c.getValue().getDateTime() != null
+                                ? c.getValue().getDateTime().format(formatter)
+                                : ""
+                ));
+
+        venueColumn.setCellValueFactory(c ->
+                new SimpleStringProperty(c.getValue().getVenue()));
+
+        capacityColumn.setCellValueFactory(c ->
+                new SimpleIntegerProperty(c.getValue().getCapacity()));
+
+        organizerIdColumn.setCellValueFactory(c ->
+                new SimpleIntegerProperty(c.getValue().getOrganizerId()));
+
+        loadEvents();
+    }
+
+    private void loadEvents() {
+        List<Event> events = eventDAO.findAll();
+        eventTable.getItems().setAll(events);
+    }
+
+    @FXML
+    private void handleDeleteEvent() {
+        Event selected = eventTable.getSelectionModel().getSelectedItem();
+        if (selected == null) {
+            showAlert(Alert.AlertType.WARNING,
+                    "No selection",
+                    "Please select an event to delete.");
+            return;
+        }
+
+        Alert confirm = new Alert(Alert.AlertType.CONFIRMATION);
+        confirm.setTitle("Delete Event");
+        confirm.setHeaderText("Confirm delete");
+        confirm.setContentText("Delete event: \"" + selected.getTitle() + "\"?");
+        confirm.showAndWait().ifPresent(result -> {
+            if (result.getButtonData() == ButtonBar.ButtonData.OK_DONE) {
+                boolean deleted = eventDAO.deleteEvent(selected.getId());
+                if (deleted) {
+                    showAlert(Alert.AlertType.INFORMATION,
+                            "Deleted",
+                            "Event deleted successfully.");
+                    loadEvents();
+                } else {
+                    showAlert(Alert.AlertType.ERROR,
+                            "Error",
+                            "Could not delete the event.");
+                }
+            }
+        });
+    }
+
+    @FXML
+    private void handleClose() {
+        Stage stage = (Stage) eventTable.getScene().getWindow();
+        stage.close();
+    }
+
+    private void showAlert(Alert.AlertType type, String header, String msg) {
+        Alert alert = new Alert(type);
+        alert.setHeaderText(header);
+        alert.setContentText(msg);
+        alert.showAndWait();
+    }
+}
+=== C:\Users\hibba\IdeaProjects\PopIn\src\main\java\net\javaguids\popin\controllers\AnalyticsController.java ===
+package net.javaguids.popin.controllers;
+
+import javafx.fxml.FXML;
+import javafx.scene.control.Label;
+import javafx.stage.Stage;
+import net.javaguids.popin.database.EventDAO;
+import net.javaguids.popin.database.RegistrationDAO;
+import net.javaguids.popin.database.UserDAO;
+import net.javaguids.popin.models.Event;
+import net.javaguids.popin.models.PaidEvent;
+import net.javaguids.popin.models.User;
+
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
+
+public class AnalyticsController {
+
+    // basic totals
+    @FXML private Label totalUsersLabel;
+    @FXML private Label totalEventsLabel;
+    @FXML private Label totalRegistrationsLabel;
+
+    // extra stats
+    @FXML private Label mostActiveOrganizerLabel;
+    @FXML private Label avgPriceLabel;
+    @FXML private Label mostPopularEventLabel;
+
+    private final UserDAO userDAO = new UserDAO();
+    private final EventDAO eventDAO = new EventDAO();
+    private final RegistrationDAO registrationDAO = new RegistrationDAO();
+
+    @FXML
+    public void initialize() {
+        loadStats();
+    }
+
+    private void loadStats() {
+        // --------- BASIC TOTALS ---------
+        int userCount = userDAO.countAll();                 // from UserDAO
+        int eventCount = eventDAO.countAll();               // from EventDAO
+        int registrationCount = registrationDAO.listAll().size(); // from RegistrationDAO
+
+        totalUsersLabel.setText("Total users: " + userCount);
+        totalEventsLabel.setText("Total events: " + eventCount);
+        totalRegistrationsLabel.setText("Total registrations: " + registrationCount);
+
+        // --------- MOST ACTIVE ORGANIZER (by event count) ---------
+        List<Event> allEvents = eventDAO.findAll();
+
+        if (allEvents.isEmpty()) {
+            mostActiveOrganizerLabel.setText("Most active organizer: no events yet.");
+        } else {
+            Map<Integer, Long> countByOrganizer = allEvents.stream()
+                    .collect(Collectors.groupingBy(Event::getOrganizerId, Collectors.counting()));
+
+            Map.Entry<Integer, Long> topEntry =
+                    Collections.max(countByOrganizer.entrySet(), Map.Entry.comparingByValue());
+
+            int organizerId = topEntry.getKey();
+            long organizerEvents = topEntry.getValue();
+
+            User organizer = userDAO.findById(organizerId);
+            String name = (organizer != null) ? organizer.getUsername() : ("User #" + organizerId);
+
+            mostActiveOrganizerLabel.setText(
+                    "Most active organizer: " + name + " (" + organizerEvents + " event(s))"
+            );
+        }
+
+        // --------- AVERAGE PRICE PER PAID EVENT ---------
+        double avgPrice = allEvents.stream()
+                .filter(e -> e instanceof PaidEvent)
+                .mapToDouble(e -> ((PaidEvent) e).getPrice())
+                .average()
+                .orElse(0.0);
+
+        if (avgPrice > 0) {
+            avgPriceLabel.setText(
+                    String.format("Average ticket price (paid events): â‚¬%.2f", avgPrice)
+            );
+        } else {
+            avgPriceLabel.setText("Average ticket price: no paid events yet.");
+        }
+
+        // --------- MOST POPULAR UPCOMING EVENT (by registrations) ---------
+        List<Event> upcoming = eventDAO.findAllUpcoming();
+
+        Event mostPopular = null;
+        int maxRegistrations = 0;
+
+        for (Event e : upcoming) {
+            int count = registrationDAO.countRegistered(e.getId());
+            if (count > maxRegistrations) {
+                maxRegistrations = count;
+                mostPopular = e;
+            }
+        }
+
+        if (mostPopular != null) {
+            mostPopularEventLabel.setText(
+                    "Most popular upcoming event: " +
+                            mostPopular.getTitle() +
+                            " (" + maxRegistrations + " registration(s))"
+            );
+        } else {
+            mostPopularEventLabel.setText("Most popular upcoming event: none yet.");
+        }
+    }
+
+    @FXML
+    private void handleClose() {
+        Stage stage = (Stage) totalUsersLabel.getScene().getWindow();
+        stage.close();
+    }
+}
+=== C:\Users\hibba\IdeaProjects\PopIn\src\main\java\net\javaguids\popin\controllers\AttendeeDashboardController.java ===
+package net.javaguids.popin.controllers;
+
+import javafx.fxml.FXML;
+import javafx.fxml.FXMLLoader;
+import javafx.scene.Parent;
+import javafx.scene.Scene;
+import javafx.stage.Stage;
+import net.javaguids.popin.models.User;
+
+public class AttendeeDashboardController {
+
+    private User loggedInUser;
+
+    public void setLoggedInUser(User user) {
+        this.loggedInUser = user;
+    }
+
+    @FXML
+    private void handleBrowseEvents() {
+        if (loggedInUser == null) {
+            System.err.println("No logged-in user set for AttendeeDashboardController.");
+            return;
+        }
+        try {
+            FXMLLoader loader = new FXMLLoader(
+                    getClass().getResource("/net/javaguids/popin/views/event-list.fxml"));
+            Parent root = loader.load();
+
+            EventListController controller = loader.getController();
+            controller.setLoggedInUser(loggedInUser);
+
+            Stage stage = new Stage();
+            stage.setScene(new Scene(root));
+            stage.setTitle("Available Events");
+            stage.show();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    @FXML
+    private void handleMyRegistrations() {
+        if (loggedInUser == null) {
+            System.err.println("No logged-in user set for AttendeeDashboardController.");
+            return;
+        }
+        try {
+            FXMLLoader loader = new FXMLLoader(
+                    getClass().getResource("/net/javaguids/popin/views/my-registrations.fxml"));
+            Parent root = loader.load();
+
+            MyRegistrationsController controller = loader.getController();
+            controller.setLoggedInUser(loggedInUser);
+
+            Stage stage = new Stage();
+            stage.setTitle("My Registrations");
+            stage.setScene(new Scene(root));
+            stage.show();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    @FXML
+    private void handleProfile() {
+        if (loggedInUser == null) {
+            System.err.println("No logged-in user set for AttendeeDashboardController.");
+            return;
+        }
+        try {
+            FXMLLoader loader = new FXMLLoader(
+                    getClass().getResource("/net/javaguids/popin/views/profile.fxml"));
+            Parent root = loader.load();
+
+            ProfileController controller = loader.getController();
+            controller.setLoggedInUser(loggedInUser);
+
+            Stage stage = new Stage();
+            stage.setTitle("My Profile");
+            stage.setScene(new Scene(root));
+            stage.show();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    @FXML
+    private void handleLogout() {
+        openScene("/net/javaguids/popin/views/login.fxml", "Login");
+    }
+
+    private void openScene(String fxml, String title) {
+        try {
+            FXMLLoader loader = new FXMLLoader(getClass().getResource(fxml));
+            Parent root = loader.load();
+            Stage stage = new Stage();
+            stage.setScene(new Scene(root));
+            stage.setTitle(title);
+            stage.show();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+}
+=== C:\Users\hibba\IdeaProjects\PopIn\src\main\java\net\javaguids\popin\controllers\AttendeeListController.java ===
+package net.javaguids.popin.controllers;
+
+import javafx.collections.FXCollections;
+import javafx.collections.ObservableList;
+import javafx.fxml.FXML;
+import javafx.scene.control.Alert;
+import javafx.scene.control.ListView;
+import net.javaguids.popin.database.RegistrationDAO;
+import net.javaguids.popin.database.UserDAO;
+import net.javaguids.popin.models.Event;
+import net.javaguids.popin.models.Registration;
+import net.javaguids.popin.models.User;
+
+import java.util.ArrayList;
+import java.util.List;
+
+public class AttendeeListController {
+
+    @FXML
+    private ListView<String> attendeeListView;
+
+    private final RegistrationDAO registrationDAO = new RegistrationDAO();
+    private final UserDAO userDAO = new UserDAO();
+    private Event event;
+
+    public void setEvent(Event event) {
+        this.event = event;
+        loadAttendees();
+    }
+
+    private void loadAttendees() {
+        if (event == null) {
+            return;
+        }
+
+        try {
+            List<Registration> allRegs = registrationDAO.listAll();
+            List<String> usernames = new ArrayList<>();
+
+            for (Registration reg : allRegs) {
+                if (reg.getEventId() != event.getId()) continue;
+
+                String status = reg.getStatus();
+                if (!"REGISTERED".equalsIgnoreCase(status)
+                        && !"CHECKED_IN".equalsIgnoreCase(status)) {
+                    continue;
+                }
+
+                User u = userDAO.findById(reg.getUserId());
+                if (u != null) {
+                    usernames.add(u.getUsername());
+                }
+            }
+
+            ObservableList<String> list = FXCollections.observableArrayList(usernames);
+            attendeeListView.setItems(list);
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            showError("Could not load attendees: " + e.getMessage());
+        }
+    }
+
+    private void showError(String msg) {
+        Alert alert = new Alert(Alert.AlertType.ERROR);
+        alert.setHeaderText("Error");
+        alert.setContentText(msg);
+        alert.show();
+    }
+}
+=== C:\Users\hibba\IdeaProjects\PopIn\src\main\java\net\javaguids\popin\controllers\CreateEventController.java ===
+package net.javaguids.popin.controllers;
+
+import javafx.fxml.FXML;
+import javafx.scene.control.*;
+import javafx.stage.Stage;
+import net.javaguids.popin.models.Event;
+import net.javaguids.popin.models.PaidEvent;
+import net.javaguids.popin.models.User;
+import net.javaguids.popin.services.EventService;
+
+import java.time.LocalDateTime;
+import java.time.LocalTime;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
+
+public class CreateEventController {
+
+    @FXML private TextField titleField;
+    @FXML private TextArea descriptionArea;
+    @FXML private DatePicker datePicker;
+    @FXML private TextField timeField; // expects "HH:mm"
+    @FXML private TextField venueField;
+    @FXML private TextField capacityField;
+    @FXML private TextField priceField; // optional
+
+    private final EventService eventService = new EventService();
+    private User loggedInUser;      // organizer
+    private Event eventToEdit = null; // if non-null â†’ edit mode
+
+    private static final DateTimeFormatter TIME_FORMATTER =
+            DateTimeFormatter.ofPattern("HH:mm");
+
+    // Called by parent controller after login
+    public void setLoggedInUser(User user) {
+        this.loggedInUser = user;
+    }
+
+    // Called by MyEventsController when editing an existing event
+    public void setEventToEdit(Event event) {
+        this.eventToEdit = event;
+
+        // Prefill fields
+        titleField.setText(event.getTitle());
+        descriptionArea.setText(event.getDescription());
+        venueField.setText(event.getVenue());
+        capacityField.setText(String.valueOf(event.getCapacity()));
+
+        if (event.getDateTime() != null) {
+            datePicker.setValue(event.getDateTime().toLocalDate());
+            LocalTime t = event.getDateTime().toLocalTime();
+            timeField.setText(String.format("%02d:%02d", t.getHour(), t.getMinute()));
+        }
+
+        if (event instanceof PaidEvent paidEvent) {
+            priceField.setText(String.valueOf(paidEvent.getPrice()));
+        } else {
+            priceField.clear();
+        }
+    }
+
+    @FXML
+    private void handleCreateEvent() {
+        try {
+            // ---------- BASIC TEXT FIELDS ----------
+            String title = safeTrim(titleField.getText());
+            String description = safeTrim(descriptionArea.getText());
+            String venue = safeTrim(venueField.getText());
+
+            if (title.isEmpty()) {
+                showError("Title cannot be blank.");
+                return;
+            }
+
+            if (venue.isEmpty()) {
+                showError("Venue cannot be blank.");
+                return;
+            }
+
+            // ---------- CAPACITY ----------
+            int capacity;
+            try {
+                String capacityText = safeTrim(capacityField.getText());
+                capacity = Integer.parseInt(capacityText);
+                if (capacity <= 0) {
+                    showError("Capacity must be a positive whole number.");
+                    return;
+                }
+            } catch (NumberFormatException e) {
+                showError("Capacity must be a whole number.");
+                return;
+            }
+
+            // ---------- DATE & TIME ----------
+            if (datePicker.getValue() == null) {
+                showError("Please select a date for your event.");
+                return;
+            }
+
+            String timeText = safeTrim(timeField.getText());
+            if (timeText.isEmpty()) {
+                showError("Please enter a time in the format HH:mm.");
+                return;
+            }
+
+            LocalTime time;
+            try {
+                time = LocalTime.parse(timeText, TIME_FORMATTER); // HH:mm
+            } catch (DateTimeParseException e) {
+                showError("Time must be in format HH:mm.");
+                return;
+            }
+
+            LocalDateTime dateTime = datePicker.getValue().atTime(time);
+
+            // ---------- PRICE (OPTIONAL) ----------
+            Double price = null;
+            String priceText = safeTrim(priceField.getText());
+            if (!priceText.isEmpty()) {
+                try {
+                    price = Double.parseDouble(priceText);
+                    if (price < 0) {
+                        showError("Price must be a positive number, or leave it blank for a free event.");
+                        return;
+                    }
+                } catch (NumberFormatException e) {
+                    showError("Price must be a number, or leave it blank for free.");
+                    return;
+                }
+            }
+
+            // ---------- ORGANIZER ----------
+            if (loggedInUser == null) {
+                showError("Logged-in organizer information is missing.");
+                return;
+            }
+            int organizerId = loggedInUser.getId();
+
+            // ---------- CREATE vs UPDATE ----------
+            boolean success;
+            if (eventToEdit == null) {
+                // CREATE NEW EVENT
+                success = eventService.createEvent(
+                        title,
+                        description,
+                        dateTime,
+                        venue,
+                        capacity,
+                        organizerId,
+                        price
+                );
+            } else {
+                // UPDATE EXISTING EVENT
+                Event updated = new Event(
+                        eventToEdit.getId(),
+                        title,
+                        description,
+                        dateTime,
+                        venue,
+                        capacity,
+                        eventToEdit.getOrganizerId()
+                );
+                success = eventService.updateEvent(updated, price);
+            }
+
+            if (success) {
+                showSuccess(eventToEdit == null
+                        ? "Event created successfully!"
+                        : "Event updated successfully!");
+                closeWindow();
+            } else {
+                showError("Failed to save event. Please try again.");
+            }
+
+        } catch (Exception e) {
+            // No stack trace in UI; keep it friendly
+            // (you can log e somewhere if you want, but not required)
+            showError("An unexpected error occurred while saving the event.");
+        }
+    }
+
+    // UI HELPERS
+
+    private String safeTrim(String value) {
+        return value == null ? "" : value.trim();
+    }
+
+    private void showError(String msg) {
+        Alert alert = new Alert(Alert.AlertType.ERROR);
+        alert.setHeaderText("Invalid event details");
+        alert.setContentText(msg);
+        alert.show();
+    }
+
+    private void showSuccess(String msg) {
+        Alert alert = new Alert(Alert.AlertType.INFORMATION);
+        alert.setHeaderText("Success");
+        alert.setContentText(msg);
+        alert.show();
+    }
+
+    private void closeWindow() {
+        Stage stage = (Stage) titleField.getScene().getWindow();
+        stage.close();
+    }
+}
+=== C:\Users\hibba\IdeaProjects\PopIn\src\main\java\net\javaguids\popin\controllers\EventDetailsController.java ===
+package net.javaguids.popin.controllers;
+
+import javafx.fxml.FXMLLoader;
+import javafx.scene.Parent;
+import javafx.scene.Scene;
+import javafx.stage.Stage;
+import javafx.fxml.FXML;
+import javafx.scene.control.Alert;
+import javafx.scene.control.ButtonType;
+import javafx.scene.control.Button;
+import javafx.scene.control.Label;
+import net.javaguids.popin.database.ReportDAO;
+import net.javaguids.popin.models.Event;
+import net.javaguids.popin.models.PaidEvent;
+import net.javaguids.popin.models.User;
+import net.javaguids.popin.services.EventService;
+import net.javaguids.popin.services.RegistrationService;
+
+public class EventDetailsController {
+
+    @FXML private Label titleLabel;
+    @FXML private Label descriptionLabel;
+    @FXML private Label dateLabel;
+    @FXML private Label venueLabel;
+    @FXML private Label priceLabel;
+    @FXML private Label capacityLabel;
+    @FXML private Button registerButton;
+    @FXML private Button cancelButton;
+    @FXML private Button checkInButton;
+    @FXML private Button editButton;
+    @FXML private Button deleteButton;
+
+    // NEW:
+    @FXML private Button reportButton;
+
+    private Event event;
+    private User loggedInUser;
+    private final RegistrationService registrationService = new RegistrationService();
+    private final EventService eventService = new EventService();
+    private final ReportDAO reportDAO = new ReportDAO(); // NEW
+
+    // Called from EventListController
+    public void setEvent(Event event) {
+        this.event = event;
+        loadEventDetails();
+    }
+
+    // Called from dashboard after login
+    public void setLoggedInUser(User user) {
+        this.loggedInUser = user;
+        updateButtonsForRole();
+    }
+
+    private void loadEventDetails() {
+        titleLabel.setText(event.getTitle());
+        descriptionLabel.setText(event.getDescription());
+        venueLabel.setText(event.getVenue());
+        dateLabel.setText(event.getDateTime().toString());
+        capacityLabel.setText("Capacity: " + event.getCapacity());
+
+        if (event instanceof PaidEvent paid) {
+            priceLabel.setText("Price: â‚¬" + paid.getPrice());
+        } else {
+            priceLabel.setText("Free Event");
+        }
+    }
+
+    // -----------------------------------------
+    // ROLE-BASED BUTTON LOGIC
+    // -----------------------------------------
+    private void updateButtonsForRole() {
+        if (loggedInUser == null) return;
+        String role = loggedInUser.getRole().getName();
+
+        switch (role) {
+            case "ATTENDEE" -> setupAttendeeButtons();
+            case "ORGANIZER" -> setupOrganizerButtons();
+            case "ADMIN" -> setupAdminButtons();
+        }
+    }
+
+    private void setupAttendeeButtons() {
+        registerButton.setVisible(!registrationService.isEventFull(event.getId())
+                && !registrationService.isUserRegistered(event.getId(), loggedInUser.getId()));
+        cancelButton.setVisible(registrationService.isUserRegistered(event.getId(), loggedInUser.getId()));
+        checkInButton.setVisible(false);
+        editButton.setVisible(false);
+        deleteButton.setVisible(false);
+
+        // attendees see Report button
+        if (reportButton != null) {
+            reportButton.setVisible(true);
+            reportButton.setManaged(true);
+        }
+    }
+
+    private void setupOrganizerButtons() {
+        registerButton.setVisible(false);
+        cancelButton.setVisible(false);
+        checkInButton.setVisible(true);
+        editButton.setVisible(true);
+        deleteButton.setVisible(true);
+
+        if (reportButton != null) {
+            reportButton.setVisible(false);
+            reportButton.setManaged(false); // no gap
+        }
+    }
+
+    private void setupAdminButtons() {
+        registerButton.setVisible(false);
+        cancelButton.setVisible(false);
+        checkInButton.setVisible(true);
+        editButton.setVisible(false);
+        deleteButton.setVisible(true);
+
+        if (reportButton != null) {
+            reportButton.setVisible(false);
+            reportButton.setManaged(false); // no gap
+        }
+    }
+
+    // -----------------------------------------
+    // BUTTON ACTIONS
+    // -----------------------------------------
+    @FXML private void handleRegister() {
+        try {
+            registrationService.registerUser(event.getId(), loggedInUser.getId());
+            showSuccess("You are now registered!");
+            updateButtonsForRole();
+        } catch (Exception e) {
+            showError(e.getMessage());
+        }
+    }
+
+    @FXML private void handleCancelRegistration() {
+        try {
+            registrationService.cancelRegistration(event.getId(), loggedInUser.getId());
+            showSuccess("Your registration has been cancelled.");
+            updateButtonsForRole();
+        } catch (Exception e) {
+            showError(e.getMessage());
+        }
+    }
+
+    @FXML private void handleCheckIn() {
+        try {
+            registrationService.checkInUser(event.getId(), loggedInUser.getId());
+            showSuccess("User checked in successfully.");
+        } catch (Exception e) {
+            showError(e.getMessage());
+        }
+    }
+
+    @FXML private void handleEditEvent() {
+        showInfo("Edit event not implemented yet.");
+    }
+
+    @FXML private void handleDeleteEvent() {
+        showInfo("Delete event not implemented yet.");
+    }
+
+    @FXML private void handleViewAttendees() {
+        try {
+            FXMLLoader loader = new FXMLLoader(getClass().getResource("/net/javaguids/popin/views/attendee-list.fxml"));
+            Parent root = loader.load();
+            AttendeeListController controller = loader.getController();
+            controller.setEvent(event);
+
+            Stage stage = new Stage();
+            stage.setTitle("Attendee List");
+            stage.setScene(new Scene(root));
+            stage.show();
+        } catch (Exception e) {
+            showError("Could not open attendee list: " + e.getMessage());
+        }
+    }
+
+    // NEW: attendee reporting
+    @FXML private void handleReportEvent() {
+        if (loggedInUser == null || !"ATTENDEE".equalsIgnoreCase(loggedInUser.getRole().getName())) {
+            showError("Only attendees can report events.");
+            return;
+        }
+
+        if (reportDAO.hasUserReported(event.getId(), loggedInUser.getId())) {
+            showError("You have already reported this event.");
+            return;
+        }
+
+        Alert confirm = new Alert(Alert.AlertType.CONFIRMATION);
+        confirm.setHeaderText("Report Event");
+        confirm.setContentText("Are you sure you want to report this event?");
+        confirm.showAndWait().ifPresent(result -> {
+            if (result == ButtonType.OK) {
+                boolean ok = reportDAO.addReport(event.getId(), loggedInUser.getId());
+                if (ok) {
+                    showSuccess("Event reported successfully.");
+                } else {
+                    showError("Could not report event. Please try again.");
+                }
+            }
+        });
+    }
+
+    // -----------------------------------------
+    // UI UTILITIES
+    // -----------------------------------------
+    private void showError(String msg) {
+        Alert alert = new Alert(Alert.AlertType.ERROR);
+        alert.setHeaderText("Error");
+        alert.setContentText(msg);
+        alert.show();
+    }
+
+    private void showSuccess(String msg) {
+        Alert alert = new Alert(Alert.AlertType.INFORMATION);
+        alert.setHeaderText("Success");
+        alert.setContentText(msg);
+        alert.show();
+    }
+
+    private void showInfo(String msg) {
+        Alert alert = new Alert(Alert.AlertType.INFORMATION);
+        alert.setHeaderText("Info");
+        alert.setContentText(msg);
+        alert.show();
+    }
+}
+=== C:\Users\hibba\IdeaProjects\PopIn\src\main\java\net\javaguids\popin\controllers\EventListController.java ===
+package net.javaguids.popin.controllers;
+
+import javafx.collections.FXCollections;
+import javafx.collections.ObservableList;
+import javafx.fxml.FXML;
+import javafx.scene.control.Alert;
+import javafx.scene.control.Button;
+import javafx.scene.control.ButtonType;
+import javafx.scene.control.ListCell;
+import javafx.scene.control.ListView;
+import javafx.scene.control.TextField;
+import net.javaguids.popin.database.ReportDAO;
+import net.javaguids.popin.models.Event;
+import net.javaguids.popin.models.User;
+import net.javaguids.popin.services.EventService;
+import net.javaguids.popin.services.RegistrationService;
+
+import java.util.List;
+
+public class EventListController {
+
+    @FXML private ListView<Event> eventListView;
+    @FXML private TextField searchField;
+    @FXML private Button registerButton;
+
+    // NEW:
+    @FXML private Button reportButton;
+
+    private final EventService eventService = new EventService();
+    private final RegistrationService registrationService = new RegistrationService();
+    private final ReportDAO reportDAO = new ReportDAO(); // NEW
+
+    // Holds ALL events so we can filter them
+    private List<Event> fullEventList;
+
+    // Loggedâ€‘in attendee (set from AttendeeDashboardController)
+    private User loggedInUser;
+
+    // Called from AttendeeDashboardController
+    public void setLoggedInUser(User user) {
+        this.loggedInUser = user;
+        updateRegisterButtonState();
+        updateReportButtonState();
+    }
+
+    @FXML
+    public void initialize() {
+        loadEvents();
+
+        // Live search listener
+        searchField.textProperty().addListener((obs, oldV, newV) -> {
+            filterEvents(newV);
+        });
+
+        // Cell formatting
+        eventListView.setCellFactory(lv -> new ListCell<>() {
+            @Override
+            protected void updateItem(Event event, boolean empty) {
+                super.updateItem(event, empty);
+                if (empty || event == null) {
+                    setText(null);
+                } else {
+                    setText(event.getTitle() + " â€” " + event.getDateTime());
+                }
+            }
+        });
+
+        // Selection change â†’ update buttons
+        eventListView.getSelectionModel().selectedItemProperty().addListener(
+                (obs, oldEvent, newEvent) -> {
+                    updateRegisterButtonState();
+                    updateReportButtonState();
+                }
+        );
+    }
+
+    /** Load full event list */
+    private void loadEvents() {
+        try {
+            fullEventList = eventService.getUpcomingEvents();
+            ObservableList<Event> observableList =
+                    FXCollections.observableArrayList(fullEventList);
+            eventListView.setItems(observableList);
+        } catch (Exception e) {
+            showError("Could not load events: " + e.getMessage());
+        }
+    }
+
+    /** Filter events live by title */
+    private void filterEvents(String keyword) {
+        if (keyword == null || keyword.isBlank()) {
+            eventListView.setItems(FXCollections.observableArrayList(fullEventList));
+            return;
+        }
+        String lower = keyword.toLowerCase();
+        List<Event> filtered = fullEventList.stream()
+                .filter(event -> event.getTitle().toLowerCase().contains(lower))
+                .toList();
+        eventListView.setItems(FXCollections.observableArrayList(filtered));
+    }
+
+    // =========================
+    // REGISTER / UNREGISTER BTN
+    // =========================
+    private void updateRegisterButtonState() {
+        Event selected = eventListView.getSelectionModel().getSelectedItem();
+
+        if (loggedInUser == null) {
+            registerButton.setText("Login required");
+            registerButton.setDisable(true);
+            return;
+        }
+
+        if (selected == null) {
+            registerButton.setText("Select an event");
+            registerButton.setDisable(true);
+            return;
+        }
+
+        boolean isRegistered =
+                registrationService.isUserRegistered(selected.getId(), loggedInUser.getId());
+        boolean isFull =
+                registrationService.isEventFull(selected.getId());
+
+        if (isRegistered) {
+            registerButton.setText("Unregister");
+            registerButton.setDisable(false);
+        } else if (isFull) {
+            registerButton.setText("Event full");
+            registerButton.setDisable(true);
+        } else {
+            registerButton.setText("Register");
+            registerButton.setDisable(false);
+        }
+    }
+
+    @FXML
+    private void handleToggleRegistration() {
+        Event selected = eventListView.getSelectionModel().getSelectedItem();
+        if (selected == null || loggedInUser == null) {
+            return;
+        }
+
+        boolean isRegistered =
+                registrationService.isUserRegistered(selected.getId(), loggedInUser.getId());
+
+        try {
+            if (isRegistered) {
+                registrationService.cancelRegistration(selected.getId(), loggedInUser.getId());
+                showInfo("You have been unregistered from \"" + selected.getTitle() + "\".");
+            } else {
+                registrationService.registerUser(selected.getId(), loggedInUser.getId());
+                showInfo("You are registered for \"" + selected.getTitle() + "\".");
+            }
+        } catch (Exception e) {
+            showError(e.getMessage());
+        }
+
+        // Refresh button label+state after action
+        updateRegisterButtonState();
+    }
+
+    // =========================
+    // REPORT EVENT BUTTON
+    // =========================
+    private void updateReportButtonState() {
+        if (reportButton == null) return;
+
+        Event selected = eventListView.getSelectionModel().getSelectedItem();
+
+        // No user or no event selected â†’ disable
+        if (loggedInUser == null || selected == null) {
+            reportButton.setDisable(true);
+            return;
+        }
+
+        // Only attendees can report (organizers/admins shouldn't)
+        String roleName = loggedInUser.getRole().getName();
+        if (!"ATTENDEE".equalsIgnoreCase(roleName)) {
+            reportButton.setDisable(true);
+            return;
+        }
+
+        // If they've already reported, we could disable it too (optional)
+        boolean alreadyReported = reportDAO.hasUserReported(selected.getId(), loggedInUser.getId());
+        reportButton.setDisable(alreadyReported);
+    }
+
+    @FXML
+    private void handleReportEvent() {
+        Event selected = eventListView.getSelectionModel().getSelectedItem();
+
+        if (selected == null) {
+            showError("Please select an event to report.");
+            return;
+        }
+
+        if (loggedInUser == null) {
+            showError("You must be logged in to report an event.");
+            return;
+        }
+
+        String roleName = loggedInUser.getRole().getName();
+        if (!"ATTENDEE".equalsIgnoreCase(roleName)) {
+            showError("Only attendees can report events.");
+            return;
+        }
+
+        if (reportDAO.hasUserReported(selected.getId(), loggedInUser.getId())) {
+            showError("You have already reported this event.");
+            updateReportButtonState();
+            return;
+        }
+
+        Alert confirm = new Alert(Alert.AlertType.CONFIRMATION);
+        confirm.setHeaderText("Report Event");
+        confirm.setContentText("Are you sure you want to report \"" + selected.getTitle() + "\"?");
+        confirm.showAndWait().ifPresent(result -> {
+            if (result == ButtonType.OK) {
+                boolean ok = reportDAO.addReport(selected.getId(), loggedInUser.getId());
+                if (ok) {
+                    showInfo("Event reported successfully.");
+                } else {
+                    showError("Could not report event. Please try again.");
+                }
+                updateReportButtonState();
+            }
+        });
+    }
+
+    // =========================
+    // ALERT HELPERS
+    // =========================
+    private void showError(String msg) {
+        Alert alert = new Alert(Alert.AlertType.ERROR);
+        alert.setHeaderText("Error");
+        alert.setContentText(msg);
+        alert.show();
+    }
+
+    private void showInfo(String msg) {
+        Alert alert = new Alert(Alert.AlertType.INFORMATION);
+        alert.setHeaderText("Info");
+        alert.setContentText(msg);
+        alert.show();
+    }
+}
+=== C:\Users\hibba\IdeaProjects\PopIn\src\main\java\net\javaguids\popin\controllers\LoginController.java ===
+package net.javaguids.popin.controllers;
+
+import javafx.fxml.FXML;
+import javafx.fxml.FXMLLoader;
+import javafx.scene.Parent;
+import javafx.scene.Scene;
+import javafx.scene.control.Alert;
+import javafx.scene.control.Label;
+import javafx.scene.control.PasswordField;
+import javafx.scene.control.TextField;
+import javafx.stage.Stage;
+import net.javaguids.popin.models.User;
+import net.javaguids.popin.services.AuthService;
+
+import java.io.IOException;
+import java.util.Optional;
+
+public class LoginController {
+
+    @FXML private TextField usernameField;
+    @FXML private PasswordField passwordField;
+    @FXML private Label errorLabel;   // ðŸ”¹ new: inline error
+
+    private final AuthService authService = new AuthService();
+
+    @FXML
+    private void initialize() {
+        if (errorLabel != null) {
+            errorLabel.setText("");
+            errorLabel.setVisible(false);
+        }
+    }
+
+    @FXML
+    private void handleLogin() {
+        // clear old error
+        if (errorLabel != null) {
+            errorLabel.setText("");
+            errorLabel.setVisible(false);
+        }
+
+        String username = usernameField.getText();
+        String password = passwordField.getText();
+
+        // ðŸ”¹ prevent empty username/password
+        if (username == null || username.isBlank()) {
+            showInlineError("Username cannot be empty.");
+            return;
+        }
+        if (password == null || password.isBlank()) {
+            showInlineError("Password cannot be empty.");
+            return;
+        }
+
+        Optional<User> userOpt = authService.login(username, password);
+
+        if (userOpt.isEmpty()) {
+            showInlineError("Invalid username or password.");
+            return;
+        }
+
+        User user = userOpt.get();
+        String roleName = user.getRole().getName();
+
+        try {
+            switch (roleName) {
+                case "ADMIN" -> openAdminDashboard(user);
+                case "ORGANIZER" -> openOrganizerDashboard(user);
+                case "ATTENDEE" -> openAttendeeDashboard(user);
+                default -> showInlineError("Unknown role: " + roleName);
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+            showInlineError("Could not open dashboard.");
+        }
+    }
+
+    private void openAdminDashboard(User user) throws IOException {
+        FXMLLoader loader = new FXMLLoader(
+                getClass().getResource("/net/javaguids/popin/views/admin-dashboard.fxml")
+        );
+        Parent root = loader.load();
+
+        AdminDashboardController controller = loader.getController();
+        controller.setLoggedInUser(user);
+
+        Stage stage = new Stage();
+        stage.setTitle("PopIn â€“ Admin");
+        stage.setScene(new Scene(root));
+        stage.show();
+
+        closeCurrentWindow();
+    }
+
+    private void openOrganizerDashboard(User user) throws IOException {
+        FXMLLoader loader = new FXMLLoader(
+                getClass().getResource("/net/javaguids/popin/views/organizer-dashboard.fxml")
+        );
+        Parent root = loader.load();
+
+        OrganizerDashboardController controller = loader.getController();
+        controller.setLoggedInUser(user);
+
+        Stage stage = new Stage();
+        stage.setTitle("PopIn â€“ Organizer");
+        stage.setScene(new Scene(root));
+        stage.show();
+
+        closeCurrentWindow();
+    }
+
+    private void openAttendeeDashboard(User user) throws IOException {
+        FXMLLoader loader = new FXMLLoader(
+                getClass().getResource("/net/javaguids/popin/views/attendee-dashboard.fxml")
+        );
+        Parent root = loader.load();
+
+        AttendeeDashboardController controller = loader.getController();
+        controller.setLoggedInUser(user);
+
+        Stage stage = new Stage();
+        stage.setTitle("PopIn â€“ Attendee");
+        stage.setScene(new Scene(root));
+        stage.show();
+
+        closeCurrentWindow();
+    }
+
+    private void closeCurrentWindow() {
+        Stage stage = (Stage) usernameField.getScene().getWindow();
+        stage.close();
+    }
+
+    private void showError(String msg) {
+        Alert alert = new Alert(Alert.AlertType.ERROR);
+        alert.setHeaderText("Login error");
+        alert.setContentText(msg);
+        alert.show();
+    }
+
+    // ðŸ”¹ new helper: prefer label, fall back to alert if something is wrong
+    private void showInlineError(String msg) {
+        if (errorLabel != null) {
+            errorLabel.setText(msg);
+            errorLabel.setVisible(true);
+        } else {
+            showError(msg);
+        }
+    }
+
+    @FXML
+    private void goToSignUp() {
+        try {
+            FXMLLoader loader = new FXMLLoader(
+                    getClass().getResource("/net/javaguids/popin/views/sign-up.fxml")
+            );
+
+            // Load FIRST so we know it works
+            Scene scene = new Scene(loader.load());
+
+            // Now we can close the current stage
+            Stage currentStage = (Stage) usernameField.getScene().getWindow();
+            currentStage.close();
+
+            // Open signup window
+            Stage signupStage = new Stage();
+            signupStage.setScene(scene);
+            signupStage.show();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+}
+=== C:\Users\hibba\IdeaProjects\PopIn\src\main\java\net\javaguids\popin\controllers\MyEventsController.java ===
+package net.javaguids.popin.controllers;
+
+import javafx.beans.property.SimpleIntegerProperty;
+import javafx.beans.property.SimpleStringProperty;
+import javafx.fxml.FXML;
+import javafx.fxml.FXMLLoader;
+import javafx.scene.Parent;
+import javafx.scene.Scene;
+import javafx.scene.control.*;
+import javafx.stage.Stage;
+import net.javaguids.popin.database.EventDAO;
+import net.javaguids.popin.database.RegistrationDAO;
+import net.javaguids.popin.models.Event;
+import net.javaguids.popin.models.User;
+import net.javaguids.popin.services.EventService;
+
+import java.io.IOException;
+import java.time.format.DateTimeFormatter;
+import java.util.List;
+
+public class MyEventsController {
+
+    @FXML private TableView<Event> eventTable;
+    @FXML private TableColumn<Event, String> titleColumn;
+    @FXML private TableColumn<Event, String> dateColumn;
+    @FXML private TableColumn<Event, String> venueColumn;
+    @FXML private TableColumn<Event, Number> capacityColumn;
+    @FXML private TableColumn<Event, Number> goingColumn;
+
+    private final EventDAO eventDAO = new EventDAO();
+    private final RegistrationDAO registrationDAO = new RegistrationDAO();
+    private final EventService eventService = new EventService();
+
+    private final DateTimeFormatter formatter =
+            DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
+
+    private User loggedInUser;
+
+    public void setLoggedInUser(User user) {
+        this.loggedInUser = user;
+        initColumns();
+        loadEvents();
+    }
+
+    private void initColumns() {
+        if (titleColumn == null) return;
+
+        titleColumn.setCellValueFactory(c ->
+                new SimpleStringProperty(c.getValue().getTitle()));
+
+        dateColumn.setCellValueFactory(c ->
+                new SimpleStringProperty(
+                        c.getValue().getDateTime() != null
+                                ? c.getValue().getDateTime().format(formatter)
+                                : ""
+                ));
+
+        venueColumn.setCellValueFactory(c ->
+                new SimpleStringProperty(c.getValue().getVenue()));
+
+        capacityColumn.setCellValueFactory(c ->
+                new SimpleIntegerProperty(c.getValue().getCapacity()));
+
+        // how many registered for each event
+        goingColumn.setCellValueFactory(c ->
+                new SimpleIntegerProperty(
+                        registrationDAO.countRegistered(c.getValue().getId())
+                ));
+    }
+
+    private void loadEvents() {
+        if (loggedInUser == null) return;
+        List<Event> events = eventDAO.findByOrganizerId(loggedInUser.getId());
+        eventTable.getItems().setAll(events);
+    }
+
+    // -------- EDIT --------
+    @FXML
+    private void handleEditEvent() {
+        Event selected = eventTable.getSelectionModel().getSelectedItem();
+        if (selected == null) {
+            showAlert(Alert.AlertType.WARNING, "No selection",
+                    "Select an event to edit.");
+            return;
+        }
+        try {
+            FXMLLoader loader = new FXMLLoader(
+                    getClass().getResource("/net/javaguids/popin/views/create-event.fxml"));
+            Parent root = loader.load();
+
+            CreateEventController controller = loader.getController();
+            controller.setLoggedInUser(loggedInUser);
+            controller.setEventToEdit(selected);
+
+            Stage stage = new Stage();
+            stage.setTitle("Edit Event");
+            Scene scene = new Scene(root);
+
+            try {
+                scene.getStylesheets().add(
+                        getClass().getResource("/net/javaguids/popin/styles/global.css")
+                                .toExternalForm()
+                );
+            } catch (Exception ignored) {}
+
+            stage.setScene(scene);
+            stage.show();
+
+            stage.setOnHiding(e -> loadEvents());
+
+        } catch (IOException e) {
+            e.printStackTrace();
+            showAlert(Alert.AlertType.ERROR, "Error",
+                    "Could not open edit window.");
+        }
+    }
+
+    // -------- DELETE --------
+    @FXML
+    private void handleDeleteEvent() {
+        Event selected = eventTable.getSelectionModel().getSelectedItem();
+        if (selected == null) {
+            showAlert(Alert.AlertType.WARNING, "No selection",
+                    "Select an event to delete.");
+            return;
+        }
+
+        Alert confirm = new Alert(Alert.AlertType.CONFIRMATION);
+        confirm.setHeaderText("Delete event?");
+        confirm.setContentText("Are you sure you want to delete: " + selected.getTitle() + "?");
+        confirm.showAndWait().ifPresent(result -> {
+            if (result.getButtonData() == ButtonBar.ButtonData.OK_DONE) {
+                boolean deleted = eventService.deleteEvent(selected.getId());
+                if (deleted) {
+                    showAlert(Alert.AlertType.INFORMATION, "Deleted",
+                            "Event was deleted.");
+                    loadEvents();
+                } else {
+                    showAlert(Alert.AlertType.ERROR, "Error",
+                            "Could not delete event.");
+                }
+            }
+        });
+    }
+
+    // -------- VIEW ATTENDEES (Organizer) --------
+    @FXML
+    private void handleViewAttendees() {
+        Event selected = eventTable.getSelectionModel().getSelectedItem();
+        if (selected == null) {
+            showAlert(Alert.AlertType.WARNING, "No selection",
+                    "Select an event to view its attendees.");
+            return;
+        }
+
+        int goingCount = registrationDAO.countRegistered(selected.getId());
+        if (goingCount == 0) {
+            showAlert(Alert.AlertType.INFORMATION,
+                    "No Attendees",
+                    "No one has registered for this event yet.\n(0 attendees)");
+            return;
+        }
+
+        try {
+            FXMLLoader loader = new FXMLLoader(
+                    getClass().getResource("/net/javaguids/popin/views/attendee-list.fxml"));
+            Parent root = loader.load();
+
+            AttendeeListController controller = loader.getController();
+            controller.setEvent(selected);
+
+            Stage stage = new Stage();
+            stage.setTitle("Attendees â€“ " + selected.getTitle());
+            Scene scene = new Scene(root);
+
+            try {
+                scene.getStylesheets().add(
+                        getClass().getResource("/net/javaguids/popin/styles/global.css")
+                                .toExternalForm()
+                );
+            } catch (Exception ignored) {}
+
+            stage.setScene(scene);
+            stage.show();
+
+        } catch (IOException e) {
+            e.printStackTrace();
+            showAlert(Alert.AlertType.ERROR, "Error",
+                    "Could not open attendee list.");
+        }
+    }
+
+    // -------- VIEW GUEST COUNT --------
+    @FXML
+    private void handleViewGuestList() {
+        Event selected = eventTable.getSelectionModel().getSelectedItem();
+        if (selected == null) {
+            showAlert(Alert.AlertType.WARNING, "No selection",
+                    "Select an event to view guests.");
+            return;
+        }
+
+        int goingCount = registrationDAO.countRegistered(selected.getId());
+        showAlert(Alert.AlertType.INFORMATION,
+                "Guest List",
+                "Number of users registered: " + goingCount);
+    }
+
+    @FXML
+    private void handleClose() {
+        Stage stage = (Stage) eventTable.getScene().getWindow();
+        stage.close();
+    }
+
+    private void showAlert(Alert.AlertType type, String header, String msg) {
+        Alert alert = new Alert(type);
+        alert.setHeaderText(header);
+        alert.setContentText(msg);
+        alert.showAndWait();
+    }
+}
+=== C:\Users\hibba\IdeaProjects\PopIn\src\main\java\net\javaguids\popin\controllers\MyRegistrationsController.java ===
+package net.javaguids.popin.controllers;
+
+import javafx.beans.property.SimpleStringProperty;
+import javafx.fxml.FXML;
+import javafx.scene.Scene;
+import javafx.scene.control.*;
+import javafx.stage.Stage;
+import net.javaguids.popin.database.RegistrationDAO;
+import net.javaguids.popin.models.Event;
+import net.javaguids.popin.models.User;
+
+import java.time.format.DateTimeFormatter;
+import java.util.List;
+
+public class MyRegistrationsController {
+
+    @FXML private TableView<Event> registrationTable;
+    @FXML private TableColumn<Event, String> titleColumn;
+    @FXML private TableColumn<Event, String> dateColumn;
+    @FXML private TableColumn<Event, String> venueColumn;
+
+    private final RegistrationDAO registrationDAO = new RegistrationDAO();
+    private final DateTimeFormatter formatter =
+            DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
+
+    private User loggedInUser;
+
+    public void setLoggedInUser(User user) {
+        this.loggedInUser = user;
+
+        initColumns();
+        loadRegistrations();
+    }
+
+    private void initColumns() {
+        titleColumn.setCellValueFactory(c ->
+                new SimpleStringProperty(c.getValue().getTitle()));
+
+        dateColumn.setCellValueFactory(c ->
+                new SimpleStringProperty(
+                        c.getValue().getDateTime().format(formatter)
+                ));
+
+        venueColumn.setCellValueFactory(c ->
+                new SimpleStringProperty(c.getValue().getVenue()));
+    }
+
+    private void loadRegistrations() {
+        if (loggedInUser == null) return;
+
+        List<Event> events = registrationDAO.findByUserId(loggedInUser.getId());
+        registrationTable.getItems().setAll(events);
+    }
+
+    @FXML
+    private void handleClose() {
+        Stage stage = (Stage) registrationTable.getScene().getWindow();
+        stage.close();
+    }
+}
+=== C:\Users\hibba\IdeaProjects\PopIn\src\main\java\net\javaguids\popin\controllers\OrganizerDashboardController.java ===
+package net.javaguids.popin.controllers;
+
+import javafx.beans.property.SimpleStringProperty;
+import javafx.fxml.FXML;
+import javafx.fxml.FXMLLoader;
+import javafx.scene.Parent;
+import javafx.scene.Scene;
+import javafx.scene.control.Label;
+import javafx.scene.control.TableColumn;
+import javafx.scene.control.TableView;
+import javafx.stage.Stage;
+import net.javaguids.popin.database.EventDAO;
+import net.javaguids.popin.models.Event;
+import net.javaguids.popin.models.User;
+
+import java.io.IOException;
+import java.time.format.DateTimeFormatter;
+import java.util.List;
+
+public class OrganizerDashboardController {
+
+    @FXML private Label welcomeLabel;
+    @FXML private Label statsLabel;
+    @FXML private TableView<Event> myEventsTable;
+    @FXML private TableColumn<Event, String> titleColumn;
+    @FXML private TableColumn<Event, String> dateColumn;
+
+    private User loggedInUser;
+    private final EventDAO eventDAO = new EventDAO();
+    private final DateTimeFormatter formatter =
+            DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
+
+    public void setLoggedInUser(User user) {
+        this.loggedInUser = user;
+        if (welcomeLabel != null && user != null) {
+            welcomeLabel.setText("Welcome, " + user.getUsername());
+        }
+        initTable();
+        updateStats();
+        loadMyEventsPreview();
+    }
+
+    private void initTable() {
+        if (myEventsTable == null) return;
+
+        titleColumn.setCellValueFactory(c ->
+                new SimpleStringProperty(c.getValue().getTitle()));
+
+        dateColumn.setCellValueFactory(c ->
+                new SimpleStringProperty(
+                        c.getValue().getDateTime() != null
+                                ? c.getValue().getDateTime().format(formatter)
+                                : ""
+                ));
+    }
+
+    private void updateStats() {
+        if (statsLabel != null && loggedInUser != null) {
+            int count = eventDAO.findByOrganizerId(loggedInUser.getId()).size();
+            statsLabel.setText("You have created " + count + " event(s).");
+        }
+    }
+
+    private void loadMyEventsPreview() {
+        if (myEventsTable == null || loggedInUser == null) return;
+
+        List<Event> events = eventDAO.findByOrganizerId(loggedInUser.getId());
+        if (events.size() > 5) {
+            events = events.subList(0, 5);
+        }
+        myEventsTable.getItems().setAll(events);
+    }
+
+    @FXML
+    private void handleOpenCreateEvent() {
+        openWindow("/net/javaguids/popin/views/create-event.fxml", "Create Event");
+    }
+
+    @FXML
+    private void handleMyEvents() {
+        openWindow("/net/javaguids/popin/views/my-events.fxml", "My Events");
+    }
+
+    @FXML
+    private void handleProfile() {
+        // opens shared profile page, passes loggedInUser via openWindow()
+        openWindow("/net/javaguids/popin/views/profile.fxml", "My Profile");
+    }
+
+    @FXML
+    private void handleLogout() {
+        // back to login
+        try {
+            FXMLLoader loader = new FXMLLoader(
+                    getClass().getResource("/net/javaguids/popin/views/login.fxml"));
+            Parent root = loader.load();
+            Stage stage = new Stage();
+            stage.setTitle("PopIn â€“ Login");
+            stage.setScene(new Scene(root));
+            stage.show();
+
+            // close current dashboard window
+            Stage current = (Stage) welcomeLabel.getScene().getWindow();
+            current.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private void openWindow(String fxml, String title) {
+        try {
+            FXMLLoader loader = new FXMLLoader(getClass().getResource(fxml));
+            Parent root = loader.load();
+
+            // Pass loggedInUser forward if target controller has setLoggedInUser(User)
+            try {
+                Object controller = loader.getController();
+                controller.getClass()
+                        .getMethod("setLoggedInUser", User.class)
+                        .invoke(controller, loggedInUser);
+            } catch (Exception ignored) {}
+
+            Stage stage = new Stage();
+            stage.setTitle(title);
+            stage.setScene(new Scene(root));
+
+            // when child window closes, refresh dashboard
+            stage.setOnHidden(e -> {
+                updateStats();
+                loadMyEventsPreview();
+            });
+
+            stage.show();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+}
+=== C:\Users\hibba\IdeaProjects\PopIn\src\main\java\net\javaguids\popin\controllers\ProfileController.java ===
+package net.javaguids.popin.controllers;
+
+import javafx.fxml.FXML;
+import javafx.scene.control.*;
+import javafx.scene.layout.VBox;
+import javafx.stage.Stage;
+import net.javaguids.popin.database.UserDAO;
+import net.javaguids.popin.models.User;
+import net.javaguids.popin.utils.PasswordHasher;
+
+import java.util.Optional;
+
+public class ProfileController {
+
+    @FXML private Label usernameLabel;
+    @FXML private Label roleLabel;
+    @FXML private Label emailStatusLabel;
+
+    @FXML private TextField newUsernameField;
+
+    @FXML private PasswordField oldPasswordField;
+    @FXML private PasswordField newPasswordField;
+    @FXML private PasswordField confirmPasswordField;
+
+    @FXML private CheckBox emailNotificationsCheck;
+    @FXML private VBox emailSection; // whole email card to hide/show
+
+    private final UserDAO userDAO = new UserDAO();
+    private User loggedInUser;
+
+    public void setLoggedInUser(User user) {
+        this.loggedInUser = user;
+
+        if (user != null) {
+            String roleName = user.getRole().getName();
+            usernameLabel.setText("Username: " + user.getUsername());
+            roleLabel.setText("Role: " + roleName);
+
+            boolean isAttendee = "ATTENDEE".equalsIgnoreCase(roleName);
+
+            // Show/hide entire email card for attendees only
+            if (emailSection != null) {
+                emailSection.setVisible(isAttendee);
+                emailSection.setManaged(isAttendee);
+            }
+
+            // Show/hide the read-only email info line in Account Information
+            if (emailStatusLabel != null) {
+                if (isAttendee) {
+                    emailStatusLabel.setVisible(true);
+                    emailStatusLabel.setManaged(true);
+
+                    boolean enabled = userDAO.getEmailNotifications(user.getId());
+                    emailNotificationsCheck.setSelected(enabled);
+                    emailStatusLabel.setText(
+                            "Email notifications: " + (enabled ? "Enabled" : "Disabled")
+                    );
+                } else {
+                    // For non-attendees: no email info line at all
+                    emailStatusLabel.setVisible(false);
+                    emailStatusLabel.setManaged(false);
+                }
+            }
+        }
+    }
+
+    // -------------------- USERNAME --------------------
+    @FXML
+    private void handleSaveUsername() {
+        if (loggedInUser == null) {
+            showError("No logged-in user found.");
+            return;
+        }
+
+        String newUsername = newUsernameField.getText();
+        if (newUsername == null || newUsername.isBlank()) {
+            showError("New username cannot be empty.");
+            return;
+        }
+        if (newUsername.equals(loggedInUser.getUsername())) {
+            showError("New username must be different from the current one.");
+            return;
+        }
+
+        Optional<User> existingOpt = userDAO.findByUsername(newUsername);
+        if (existingOpt.isPresent()) {
+            showError("This username is already taken.");
+            return;
+        }
+
+        boolean updated = userDAO.updateUsername(loggedInUser.getId(), newUsername);
+        if (!updated) {
+            showError("Could not update username. Please try again.");
+            return;
+        }
+
+        loggedInUser.setUsername(newUsername);
+        usernameLabel.setText("Username: " + newUsername);
+        newUsernameField.clear();
+
+        showInfo("Username updated successfully.");
+    }
+
+    // -------------------- PASSWORD --------------------
+    @FXML
+    private void handleSavePassword() {
+        if (loggedInUser == null) {
+            showError("No logged-in user found.");
+            return;
+        }
+
+        String oldPw = oldPasswordField.getText();
+        String newPw = newPasswordField.getText();
+        String confirm = confirmPasswordField.getText();
+
+        if (oldPw == null || oldPw.isBlank()
+                || newPw == null || newPw.isBlank()
+                || confirm == null || confirm.isBlank()) {
+            showError("All password fields are required.");
+            return;
+        }
+
+        if (newPw.equals(oldPw)) {
+            showError("New password must be different from the old one.");
+            return;
+        }
+
+        if (!newPw.equals(confirm)) {
+            showError("New password and confirmation do not match.");
+            return;
+        }
+
+        if (newPw.length() < 6) {
+            showError("New password must be at least 6 characters long.");
+            return;
+        }
+
+        String storedHash = loggedInUser.getPasswordHash();
+        if (!PasswordHasher.matchPassword(oldPw, storedHash)) {
+            showError("Old password is incorrect.");
+            return;
+        }
+
+        String newHash = PasswordHasher.hashPassword(newPw);
+        boolean updated = userDAO.updatePassword(loggedInUser.getId(), newHash);
+        if (!updated) {
+            showError("Could not update password. Please try again.");
+            return;
+        }
+
+        loggedInUser.setPasswordHash(newHash);
+
+        oldPasswordField.clear();
+        newPasswordField.clear();
+        confirmPasswordField.clear();
+
+        showInfo("Password updated successfully.");
+    }
+
+    // -------------------- EMAIL PREFERENCES (ATTENDEE only) --------------------
+    @FXML
+    private void handleSavePreferences() {
+        if (loggedInUser == null) {
+            showError("No logged-in user found.");
+            return;
+        }
+
+        String roleName = loggedInUser.getRole().getName();
+        if (!"ATTENDEE".equalsIgnoreCase(roleName)) {
+            // should normally be hidden, but just in case
+            showError("Email notifications are only available for attendees.");
+            return;
+        }
+
+        boolean enabled = emailNotificationsCheck.isSelected();
+        boolean updated = userDAO.updateEmailNotifications(loggedInUser.getId(), enabled);
+        if (!updated) {
+            showError("Could not update email preference. Please try again.");
+            return;
+        }
+
+        // Update label (only visible for attendees anyway)
+        if (emailStatusLabel != null) {
+            emailStatusLabel.setText(
+                    "Email notifications: " + (enabled ? "Enabled" : "Disabled")
+            );
+        }
+
+        showInfo("Email notification preferences saved.");
+    }
+
+    // -------------------- HELPERS --------------------
+    private void showError(String msg) {
+        Alert alert = new Alert(Alert.AlertType.ERROR);
+        alert.setHeaderText("Error");
+        alert.setContentText(msg);
+        alert.showAndWait();
+    }
+
+    private void showInfo(String msg) {
+        Alert alert = new Alert(Alert.AlertType.INFORMATION);
+        alert.setHeaderText("Info");
+        alert.setContentText(msg);
+        alert.showAndWait();
+    }
+
+    @FXML
+    private void handleClose() {
+        Stage stage = (Stage) usernameLabel.getScene().getWindow();
+        stage.close();
+    }
+}
+=== C:\Users\hibba\IdeaProjects\PopIn\src\main\java\net\javaguids\popin\controllers\ReportsController.java ===
+package net.javaguids.popin.controllers;
+
+import javafx.fxml.FXML;
+import javafx.scene.control.TableColumn;
+import javafx.scene.control.TableView;
+import javafx.scene.control.cell.PropertyValueFactory;
+import net.javaguids.popin.database.EventDAO;
+import net.javaguids.popin.database.ReportDAO;
+import net.javaguids.popin.models.Event;
+
+import java.util.Map;
+
+public class ReportsController {
+
+    @FXML private TableView<ReportRow> reportsTable;
+    @FXML private TableColumn<ReportRow, String> colEventTitle;
+    @FXML private TableColumn<ReportRow, Integer> colCount;
+
+    private final ReportDAO reportDAO = new ReportDAO();
+    private final EventDAO eventDAO = new EventDAO();
+
+    @FXML
+    public void initialize() {
+        colEventTitle.setCellValueFactory(new PropertyValueFactory<>("eventTitle"));
+        colCount.setCellValueFactory(new PropertyValueFactory<>("reportCount"));
+
+        loadData();
+    }
+
+    private void loadData() {
+        Map<Integer, Integer> counts = reportDAO.getReportCountsByEvent();
+        for (Map.Entry<Integer, Integer> entry : counts.entrySet()) {
+            int eventId = entry.getKey();
+            int count = entry.getValue();
+            Event e = eventDAO.findById(eventId);
+            if (e != null) {
+                reportsTable.getItems().add(
+                        new ReportRow(e.getTitle(), count)
+                );
+            }
+        }
+    }
+
+    // simple POJO for table rows
+    public static class ReportRow {
+        private final String eventTitle;
+        private final int reportCount;
+
+        public ReportRow(String eventTitle, int reportCount) {
+            this.eventTitle = eventTitle;
+            this.reportCount = reportCount;
+        }
+
+        public String getEventTitle() {
+            return eventTitle;
+        }
+
+        public int getReportCount() {
+            return reportCount;
+        }
+    }
+}
+=== C:\Users\hibba\IdeaProjects\PopIn\src\main\java\net\javaguids\popin\controllers\SignUpController.java ===
+package net.javaguids.popin.controllers;
+
+import javafx.fxml.FXML;
+import javafx.fxml.FXMLLoader;
+import javafx.scene.Scene;
+import javafx.scene.control.*;
+import javafx.scene.layout.VBox;
+import javafx.stage.Stage;
+import net.javaguids.popin.services.AuthService;
+
+public class SignUpController {
+
+    @FXML private TextField usernameField;
+    @FXML private PasswordField passwordField;
+    @FXML private ComboBox<String> roleComboBox;
+    @FXML private Label errorLabel;
+    @FXML private Button signUpButton;
+
+    @FXML private VBox adminCodeBox;
+    @FXML private PasswordField adminCodeField;
+
+    private final AuthService authService = new AuthService();
+
+    private static final int MIN_PASSWORD_LENGTH = 6;
+    private static final String ADMIN_SECRET_CODE = "POPIN";
+
+    @FXML
+    public void initialize() {
+        if (errorLabel != null) {
+            errorLabel.setText("");
+            errorLabel.setVisible(false);
+        }
+
+        if (signUpButton != null) {
+            signUpButton.setDisable(true);
+        }
+
+        // start fully hidden + not managed (no gap)
+        if (adminCodeBox != null) {
+            adminCodeBox.setVisible(false);
+            adminCodeBox.setManaged(false);
+        }
+
+        // show/hide admin access code based on role
+        roleComboBox.valueProperty().addListener((obs, oldV, newV) -> {
+            boolean isAdmin = "admin".equalsIgnoreCase(newV);
+            if (adminCodeBox != null) {
+                adminCodeBox.setVisible(isAdmin);
+                adminCodeBox.setManaged(isAdmin);   // key: no layout gap for non-admin
+            }
+
+            // gently re-fit window to new content
+            try {
+                Stage stage = (Stage) usernameField.getScene().getWindow();
+                stage.sizeToScene();
+            } catch (Exception ignored) {}
+
+            validateForm();
+        });
+
+        usernameField.textProperty().addListener((obs, o, n) -> validateForm());
+        passwordField.textProperty().addListener((obs, o, n) -> validateForm());
+        roleComboBox.valueProperty().addListener((obs, o, n) -> validateForm());
+        if (adminCodeField != null) {
+            adminCodeField.textProperty().addListener((obs, o, n) -> validateForm());
+        }
+    }
+
+    private void validateForm() {
+        String username = usernameField.getText();
+        String password = passwordField.getText();
+        String role = roleComboBox.getValue();
+        String error = null;
+
+        if (username == null || username.isBlank()) {
+            error = "Username cannot be empty.";
+        } else if (password == null || password.length() < MIN_PASSWORD_LENGTH) {
+            error = "Password must be at least " + MIN_PASSWORD_LENGTH + " characters.";
+        } else if (role == null || role.isBlank()) {
+            error = "Please select a role.";
+        } else if ("admin".equalsIgnoreCase(role)) {
+            String code = adminCodeField != null ? adminCodeField.getText() : null;
+            if (code == null || code.isBlank()) {
+                error = "Admin access code is required for admin sign-up.";
+            } else if (!ADMIN_SECRET_CODE.equals(code)) {
+                error = "Invalid admin access code.";
+            }
+        }
+
+        if (error != null) {
+            showInlineError(error);
+            if (signUpButton != null) {
+                signUpButton.setDisable(true);
+            }
+        } else {
+            clearInlineError();
+            if (signUpButton != null) {
+                signUpButton.setDisable(false);
+            }
+        }
+    }
+
+    @FXML
+    private void handleSignUp() {
+        validateForm();
+        if (signUpButton != null && signUpButton.isDisabled()) {
+            return;
+        }
+
+        String username = usernameField.getText();
+        String password = passwordField.getText();
+        String role = roleComboBox.getValue();
+
+        // extra safety for admin
+        if ("admin".equalsIgnoreCase(role)) {
+            String code = adminCodeField != null ? adminCodeField.getText() : null;
+            if (code == null || code.isBlank() || !ADMIN_SECRET_CODE.equals(code)) {
+                showInlineError("Invalid admin access code.");
+                if (signUpButton != null) {
+                    signUpButton.setDisable(true);
+                }
+                return;
+            }
+        }
+
+        boolean success = authService.registerUser(username, password, role);
+        if (!success) {
+            showInlineError("Invalid fields or user already exists.");
+            return;
+        }
+
+        goToLogin();
+    }
+
+    private void showInlineError(String msg) {
+        if (errorLabel != null) {
+            errorLabel.setText(msg);
+            errorLabel.setVisible(true);
+        }
+    }
+
+    private void clearInlineError() {
+        if (errorLabel != null) {
+            errorLabel.setText("");
+            errorLabel.setVisible(false);
+        }
+    }
+
+    @FXML
+    private void goToLogin() {
+        try {
+            FXMLLoader loader = new FXMLLoader(
+                    getClass().getResource("/net/javaguids/popin/views/login.fxml"));
+            Scene scene = new Scene(loader.load());
+
+            Stage currentStage = (Stage) usernameField.getScene().getWindow();
+            currentStage.close();
+
+            Stage loginStage = new Stage();
+            loginStage.setScene(scene);
+            loginStage.sizeToScene();
+            loginStage.show();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+}
+=== C:\Users\hibba\IdeaProjects\PopIn\src\main\java\net\javaguids\popin\controllers\UserListController.java ===
+package net.javaguids.popin.controllers;
+
+import javafx.beans.property.SimpleIntegerProperty;
+import javafx.beans.property.SimpleStringProperty;
+import javafx.fxml.FXML;
+import javafx.scene.control.Alert;
+import javafx.scene.control.TableColumn;
+import javafx.scene.control.TableView;
+import javafx.stage.Stage;
+import net.javaguids.popin.database.UserDAO;
+import net.javaguids.popin.models.User;
+
+import java.util.List;
+
+public class UserListController {
+
+    @FXML
+    private TableView<User> userTable;
+
+    @FXML
+    private TableColumn<User, Number> idColumn;
+
+    @FXML
+    private TableColumn<User, String> usernameColumn;
+
+    @FXML
+    private TableColumn<User, String> roleColumn;
+
+    private final UserDAO userDAO = new UserDAO();
+
+    @FXML
+    public void initialize() {
+        // Configure how columns read data from User
+        idColumn.setCellValueFactory(cellData ->
+                new SimpleIntegerProperty(cellData.getValue().getId()));
+
+        usernameColumn.setCellValueFactory(cellData ->
+                new SimpleStringProperty(cellData.getValue().getUsername()));
+
+        roleColumn.setCellValueFactory(cellData ->
+                new SimpleStringProperty(
+                        cellData.getValue().getRole() != null
+                                ? cellData.getValue().getRole().getName()
+                                : ""
+                ));
+
+        loadUsers();
+    }
+
+    private void loadUsers() {
+        List<User> users = userDAO.listAll();
+        userTable.getItems().setAll(users);
+    }
+
+    @FXML
+    private void handleDeleteUser() {
+        User selected = userTable.getSelectionModel().getSelectedItem();
+
+        if (selected == null) {
+            showError("No user selected", "Please select a user to delete.");
+            return;
+        }
+
+        // Optional: prevent deleting yourself or some protected admin
+        // if (/* some check */) { ... }
+
+        Alert confirm = new Alert(Alert.AlertType.CONFIRMATION);
+        confirm.setTitle("Confirm delete");
+        confirm.setHeaderText("Delete user");
+        confirm.setContentText("Are you sure you want to delete user: " + selected.getUsername() + "?");
+
+        // Show dialog and check result
+        confirm.showAndWait().ifPresent(buttonType -> {
+            switch (buttonType.getButtonData()) {
+                case OK_DONE, YES -> {
+                    boolean deleted = userDAO.deleteById(selected.getId());
+                    if (deleted) {
+                        showInfo("User deleted", "User was deleted successfully.");
+                        loadUsers();
+                    } else {
+                        showError("Delete failed", "Could not delete user from database.");
+                    }
+                }
+                default -> {
+                    // Cancel / close â€“ do nothing
+                }
+            }
+        });
+    }
+
+    @FXML
+    private void handleClose() {
+        Stage stage = (Stage) userTable.getScene().getWindow();
+        stage.close();
+    }
+
+    private void showError(String header, String message) {
+        Alert alert = new Alert(Alert.AlertType.ERROR);
+        alert.setTitle("Error");
+        alert.setHeaderText(header);
+        alert.setContentText(message);
+        alert.show();
+    }
+
+    private void showInfo(String header, String message) {
+        Alert alert = new Alert(Alert.AlertType.INFORMATION);
+        alert.setTitle("Info");
+        alert.setHeaderText(header);
+        alert.setContentText(message);
+        alert.show();
+    }
+}
+=== C:\Users\hibba\IdeaProjects\PopIn\src\main\java\net\javaguids\popin\database\AttendanceDAO.java ===
+package net.javaguids.popin.database;
+
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
+
+/**
+ * Handles event_attendance table:
+ * event_id, user_id, status (GOING / INTERESTED / FAVORITE)
+ */
+public class AttendanceDAO {
+
+    public AttendanceDAO() {
+        createTableIfNotExists();
+    }
+
+    private void createTableIfNotExists() {
+        String sql = """
+            CREATE TABLE IF NOT EXISTS event_attendance (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                event_id INTEGER NOT NULL,
+                user_id  INTEGER NOT NULL,
+                status   TEXT NOT NULL,   -- GOING / INTERESTED / FAVORITE
+                UNIQUE(event_id, user_id)
+            );
+            """;
+
+        try (Connection conn = Database.getConnection();
+             Statement stmt = conn.createStatement()) {
+            stmt.execute(sql);
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
+
+    // ---------- PUBLIC API ----------
+
+    public boolean markGoing(int eventId, int userId) {
+        return setStatus(eventId, userId, "GOING");
+    }
+
+    public boolean markInterested(int eventId, int userId) {
+        return setStatus(eventId, userId, "INTERESTED");
+    }
+
+    public boolean markFavorite(int eventId, int userId) {
+        return setStatus(eventId, userId, "FAVORITE");
+    }
+
+    /** Remove any attendance record for this user/event. */
+    public boolean clearAttendance(int eventId, int userId) {
+        String sql = "DELETE FROM event_attendance WHERE event_id = ? AND user_id = ?";
+
+        try (Connection conn = Database.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+
+            stmt.setInt(1, eventId);
+            stmt.setInt(2, userId);
+            int rows = stmt.executeUpdate();
+            return rows > 0;
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return false;
+    }
+
+    /** How many users marked status = 'GOING' for this event. */
+    public int countGoingByEventId(int eventId) {
+        String sql = "SELECT COUNT(*) FROM event_attendance WHERE event_id = ? AND status = 'GOING'";
+        try (Connection conn = Database.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+
+            stmt.setInt(1, eventId);
+            ResultSet rs = stmt.executeQuery();
+            if (rs.next()) {
+                return rs.getInt(1);
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return 0;
+    }
+
+    // ---------- INTERNAL HELPER ----------
+
+    /**
+     * Try to UPDATE status first; if nothing updated, INSERT a new row.
+     */
+    private boolean setStatus(int eventId, int userId, String status) {
+        String updateSql = "UPDATE event_attendance SET status = ? WHERE event_id = ? AND user_id = ?";
+        String insertSql = "INSERT INTO event_attendance (event_id, user_id, status) VALUES (?, ?, ?)";
+
+        try (Connection conn = Database.getConnection()) {
+            // 1) Try update
+            try (PreparedStatement updateStmt = conn.prepareStatement(updateSql)) {
+                updateStmt.setString(1, status);
+                updateStmt.setInt(2, eventId);
+                updateStmt.setInt(3, userId);
+
+                int rows = updateStmt.executeUpdate();
+                if (rows > 0) {
+                    return true; // existing row updated
+                }
+            }
+
+            // 2) If no row existed, insert a new one
+            try (PreparedStatement insertStmt = conn.prepareStatement(insertSql)) {
+                insertStmt.setInt(1, eventId);
+                insertStmt.setInt(2, userId);
+                insertStmt.setString(3, status);
+
+                int rows = insertStmt.executeUpdate();
+                return rows > 0;
+            }
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+
+        return false;
+    }
+}
+=== C:\Users\hibba\IdeaProjects\PopIn\src\main\java\net\javaguids\popin\database\Database.java ===
+package net.javaguids.popin.database;
+
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.SQLException;
+import java.sql.Statement;
+
+public class Database {
+    private static final String DB_URL = "jdbc:sqlite:popin.db";
+
+    static {
+        try (Connection conn = getConnection();
+             Statement stmt = conn.createStatement()) {
+
+            String createUsersTable = """
+                CREATE TABLE IF NOT EXISTS users (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    username TEXT NOT NULL UNIQUE,
+                    password_hash TEXT NOT NULL,
+                    role_name TEXT NOT NULL,
+                    email_notifications INTEGER DEFAULT 1
+                );
+            """;
+            stmt.execute(createUsersTable);
+
+            // NEW: reports table (very simple: event + attendee)
+            String createReportsTable = """
+                CREATE TABLE IF NOT EXISTS reports (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    event_id INTEGER NOT NULL,
+                    attendee_id INTEGER NOT NULL,
+                    created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+                    FOREIGN KEY (event_id) REFERENCES events(id),
+                    FOREIGN KEY (attendee_id) REFERENCES users(id)
+                );
+            """;
+            stmt.execute(createReportsTable);
+
+            // Event & registration tables are handled in EventDAO / RegistrationDAO
+
+        } catch (SQLException e) {
+            System.err.println("Error initializing database: " + e.getMessage());
+        }
+    }
+
+    public static Connection getConnection() throws SQLException {
+        return DriverManager.getConnection(DB_URL);
+    }
+}
+=== C:\Users\hibba\IdeaProjects\PopIn\src\main\java\net\javaguids\popin\database\EventDAO.java ===
+package net.javaguids.popin.database;
+
+import net.javaguids.popin.models.Event;
+import net.javaguids.popin.models.PaidEvent;
+
+import java.sql.*;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
+import java.util.List;
+
+public class EventDAO {
+    private static final DateTimeFormatter FORMATTER = DateTimeFormatter.ISO_LOCAL_DATE_TIME;
+
+    public EventDAO() {
+        createTableIfNotExists();
+    }
+
+    // ---------------- TABLE CREATION ----------------
+    private void createTableIfNotExists() {
+        String sql = """
+            CREATE TABLE IF NOT EXISTS events (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                title TEXT NOT NULL,
+                description TEXT,
+                date_time TEXT NOT NULL,
+                venue TEXT NOT NULL,
+                capacity INTEGER NOT NULL,
+                organizer_id INTEGER NOT NULL,
+                price REAL
+            );
+        """;
+        try (Connection conn = Database.getConnection();
+             Statement stmt = conn.createStatement()) {
+            stmt.execute(sql);
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
+
+    // ---------------- CREATE EVENT ----------------
+    public boolean createEvent(Event event) {
+        String sql = """
+            INSERT INTO events (title, description, date_time, venue, capacity, organizer_id, price)
+            VALUES (?, ?, ?, ?, ?, ?, ?);
+        """;
+        try (Connection conn = Database.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+
+            stmt.setString(1, event.getTitle());
+            stmt.setString(2, event.getDescription());
+            stmt.setString(3, event.getDateTime().format(FORMATTER));
+            stmt.setString(4, event.getVenue());
+            stmt.setInt(5, event.getCapacity());
+            stmt.setInt(6, event.getOrganizerId());
+
+            if (event instanceof PaidEvent paidEvent) {
+                stmt.setDouble(7, paidEvent.getPrice());
+            } else {
+                stmt.setNull(7, Types.REAL);
+            }
+
+            int rows = stmt.executeUpdate();
+            System.out.println("[EventDAO] createEvent â†’ " + rows + " row(s) added.");
+            return rows > 0;
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
+
+    // ---------------- FIND BY ID ----------------
+    public Event findById(int id) {
+        String sql = "SELECT * FROM events WHERE id = ?";
+        try (Connection conn = Database.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+
+            stmt.setInt(1, id);
+            try (ResultSet rs = stmt.executeQuery()) {
+                if (rs.next()) {
+                    return mapRowToEvent(rs);
+                }
+            }
+        } catch (SQLException e) {
+            System.err.println("EventDAO.findById error: " + e.getMessage());
+        }
+        return null;
+    }
+
+    // ---------------- COUNT REGISTERED ----------------
+    public int countRegistered(int eventId) {
+        String sql = """
+            SELECT COUNT(*) FROM registrations
+            WHERE event_id = ? AND status = 'REGISTERED';
+        """;
+        try (Connection conn = Database.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setInt(1, eventId);
+            ResultSet rs = stmt.executeQuery();
+            return rs.getInt(1);
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return 0;
+        }
+    }
+
+    // ---------------- UPDATE EVENT ----------------
+    public boolean updateEvent(Event event, Double price) {
+        String sql = """
+            UPDATE events
+            SET title = ?, description = ?, date_time = ?, venue = ?, capacity = ?, organizer_id = ?, price = ?
+            WHERE id = ?;
+        """;
+        try (Connection conn = Database.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+
+            stmt.setString(1, event.getTitle());
+            stmt.setString(2, event.getDescription());
+            stmt.setString(3, event.getDateTime().format(FORMATTER));
+            stmt.setString(4, event.getVenue());
+            stmt.setInt(5, event.getCapacity());
+            stmt.setInt(6, event.getOrganizerId());
+
+            if (price != null) {
+                stmt.setDouble(7, price);
+            } else {
+                stmt.setNull(7, Types.REAL);
+            }
+
+            stmt.setInt(8, event.getId());
+            int rows = stmt.executeUpdate();
+            System.out.println("[EventDAO] updateEvent rows = " + rows + " for id = " + event.getId());
+            return rows > 0;
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
+
+    // ---------------- DELETE EVENT ----------------
+    public boolean deleteEvent(int id) {
+        String sql = "DELETE FROM events WHERE id = ?";
+        try (Connection conn = Database.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setInt(1, id);
+            int rows = stmt.executeUpdate();
+            System.out.println("[EventDAO] deleteEvent rows = " + rows + " for id = " + id);
+            return rows > 0;
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
+
+    // ---------------- FIND EVENTS ----------------
+    public List<Event> findAll() {
+        List<Event> events = new ArrayList<>();
+        String sql = "SELECT * FROM events ORDER BY datetime(date_time) DESC;";
+        try (Connection conn = Database.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql);
+             ResultSet rs = stmt.executeQuery()) {
+            while (rs.next()) {
+                events.add(mapRowToEvent(rs));
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return events;
+    }
+
+    public List<Event> findAllUpcoming() {
+        List<Event> events = new ArrayList<>();
+        String sql = """
+            SELECT * FROM events
+            WHERE datetime(date_time) > datetime('now')
+            ORDER BY datetime(date_time) ASC;
+        """;
+        try (Connection conn = Database.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql);
+             ResultSet rs = stmt.executeQuery()) {
+            while (rs.next()) {
+                events.add(mapRowToEvent(rs));
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return events;
+    }
+
+    public List<Event> findByOrganizerId(int organizerId) {
+        List<Event> events = new ArrayList<>();
+        String sql = """
+            SELECT * FROM events
+            WHERE organizer_id = ?
+            ORDER BY datetime(date_time) DESC;
+        """;
+        try (Connection conn = Database.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setInt(1, organizerId);
+            try (ResultSet rs = stmt.executeQuery()) {
+                while (rs.next()) {
+                    events.add(mapRowToEvent(rs));
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return events;
+    }
+
+    // ---------------- ANALYTICS: COUNT ALL ----------------
+    public int countAll() {
+        String sql = "SELECT COUNT(*) FROM events";
+        try (Connection conn = Database.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql);
+             ResultSet rs = stmt.executeQuery()) {
+            return rs.getInt(1);
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return 0;
+        }
+    }
+
+    // ---------------- MAP ROW TO EVENT ----------------
+    private Event mapRowToEvent(ResultSet rs) throws SQLException {
+        int id = rs.getInt("id");
+        String title = rs.getString("title");
+        String description = rs.getString("description");
+        String dateString = rs.getString("date_time");
+        String venue = rs.getString("venue");
+        int capacity = rs.getInt("capacity");
+        int organizerId = rs.getInt("organizer_id");
+        double price = rs.getDouble("price");
+
+        LocalDateTime dateTime = LocalDateTime.parse(dateString, FORMATTER);
+        boolean hasPrice = !rs.wasNull();
+
+        if (hasPrice) {
+            return new PaidEvent(id, title, description, dateTime, venue, capacity, organizerId, price);
+        }
+        return new Event(id, title, description, dateTime, venue, capacity, organizerId);
+    }
+}
+=== C:\Users\hibba\IdeaProjects\PopIn\src\main\java\net\javaguids\popin\database\RegistrationDAO.java ===
+package net.javaguids.popin.database;
+
+import net.javaguids.popin.models.Event;
+import net.javaguids.popin.models.PaidEvent;
+import net.javaguids.popin.models.Registration;
+
+import java.sql.*;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
+import java.util.List;
+
+public class RegistrationDAO {
+
+    private static final DateTimeFormatter FORMATTER = DateTimeFormatter.ISO_LOCAL_DATE_TIME;
+
+    public RegistrationDAO() {
+        createTableIfNotExists();
+    }
+
+    // ----------------------------------------------------
+    // CREATE TABLE
+    // ----------------------------------------------------
+    private void createTableIfNotExists() {
+        String sql = """
+                CREATE TABLE IF NOT EXISTS registrations (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    event_id INTEGER NOT NULL,
+                    user_id INTEGER NOT NULL,
+                    status TEXT NOT NULL,
+                    UNIQUE(event_id, user_id)
+                );
+                """;
+
+        try (Connection conn = Database.getConnection();
+             Statement stmt = conn.createStatement()) {
+
+            stmt.execute(sql);
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
+
+    // ----------------------------------------------------
+    // CREATE REGISTRATION
+    // ----------------------------------------------------
+    public boolean registerUser(int eventId, int userId) {
+        String sql = """
+                INSERT INTO registrations (event_id, user_id, status)
+                VALUES (?, ?, 'REGISTERED');
+                """;
+
+        try (Connection conn = Database.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+
+            stmt.setInt(1, eventId);
+            stmt.setInt(2, userId);
+            return stmt.executeUpdate() > 0;
+
+        } catch (SQLException e) {
+            System.err.println("User already registered or DB error: " + e.getMessage());
+            return false;
+        }
+    }
+
+    // ----------------------------------------------------
+    // UPDATE REGISTRATION STATUS
+    // ----------------------------------------------------
+    public boolean updateStatus(int eventId, int userId, String status) {
+        String sql = """
+                UPDATE registrations SET status = ?
+                WHERE event_id = ? AND user_id = ?;
+                """;
+
+        try (Connection conn = Database.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+
+            stmt.setString(1, status);
+            stmt.setInt(2, eventId);
+            stmt.setInt(3, userId);
+            return stmt.executeUpdate() > 0;
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
+
+    // ----------------------------------------------------
+    // CHECK IF USER IS REGISTERED
+    // ----------------------------------------------------
+    public boolean isUserRegistered(int eventId, int userId) {
+        String sql = """
+                SELECT 1 FROM registrations
+                WHERE event_id = ? AND user_id = ? AND status = 'REGISTERED';
+                """;
+
+        try (Connection conn = Database.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+
+            stmt.setInt(1, eventId);
+            stmt.setInt(2, userId);
+
+            ResultSet rs = stmt.executeQuery();
+            return rs.next();
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
+
+    // ----------------------------------------------------
+    // COUNT REGISTERED USERS (for capacity)
+    // ----------------------------------------------------
+    public int countRegistered(int eventId) {
+        String sql = """
+                SELECT COUNT(*) FROM registrations
+                WHERE event_id = ? AND status = 'REGISTERED';
+                """;
+
+        try (Connection conn = Database.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+
+            stmt.setInt(1, eventId);
+
+            ResultSet rs = stmt.executeQuery();
+            return rs.getInt(1);
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return 0;
+        }
+    }
+
+    // ----------------------------------------------------
+    // FIND USER IDS ATTENDING EVENT
+    // ----------------------------------------------------
+    public List<Integer> findUserIdsByEvent(int eventId) {
+        List<Integer> list = new ArrayList<>();
+
+        String sql = """
+                SELECT user_id FROM registrations
+                WHERE event_id = ? AND status = 'REGISTERED';
+                """;
+
+        try (Connection conn = Database.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+
+            stmt.setInt(1, eventId);
+
+            ResultSet rs = stmt.executeQuery();
+            while (rs.next()) {
+                list.add(rs.getInt("user_id"));
+            }
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+
+        return list;
+    }
+
+    // ----------------------------------------------------
+    // GET ALL REGISTRATION ENTRIES (raw)
+    // ----------------------------------------------------
+    public List<Registration> findAllByEvent(int eventId) {
+        List<Registration> list = new ArrayList<>();
+
+        String sql = """
+                SELECT * FROM registrations WHERE event_id = ?;
+                """;
+
+        try (Connection conn = Database.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+
+            stmt.setInt(1, eventId);
+
+            ResultSet rs = stmt.executeQuery();
+            while (rs.next()) {
+                list.add(new Registration(
+                        rs.getInt("id"),
+                        rs.getInt("event_id"),
+                        rs.getInt("user_id"),
+                        rs.getString("status")
+                ));
+            }
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+
+        return list;
+    }
+
+    // ----------------------------------------------------
+    // NEW: FIND EVENTS REGISTERED BY USER
+    // ----------------------------------------------------
+    public List<Event> findByUserId(int userId) {
+        List<Event> events = new ArrayList<>();
+
+        String sql = """
+                SELECT e.*
+                FROM registrations r
+                JOIN events e ON r.event_id = e.id
+                WHERE r.user_id = ? AND r.status = 'REGISTERED'
+                ORDER BY datetime(e.date_time) ASC;
+                """;
+
+        try (Connection conn = Database.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+
+            stmt.setInt(1, userId);
+
+            ResultSet rs = stmt.executeQuery();
+            while (rs.next()) {
+
+                int id = rs.getInt("id");
+                String title = rs.getString("title");
+                String description = rs.getString("description");
+                String dateTimeStr = rs.getString("date_time");
+                String venue = rs.getString("venue");
+                int capacity = rs.getInt("capacity");
+                int organizerId = rs.getInt("organizer_id");
+                double price = rs.getDouble("price");
+
+                LocalDateTime dateTime = LocalDateTime.parse(dateTimeStr, FORMATTER);
+
+                Event e;
+
+                if (!rs.wasNull()) {
+                    e = new PaidEvent(id, title, description, dateTime, venue, capacity, organizerId, price);
+                } else {
+                    e = new Event(id, title, description, dateTime, venue, capacity, organizerId);
+                }
+
+                events.add(e);
+            }
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+
+        return events;
+    }
+    public List<Registration> listAll() {
+        List<Registration> list = new ArrayList<>();
+        String sql = "SELECT * FROM registrations";
+
+        try (Connection conn = Database.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql);
+             ResultSet rs = stmt.executeQuery()) {
+
+            while (rs.next()) {
+                list.add(new Registration(
+                        rs.getInt("id"),
+                        rs.getInt("event_id"),
+                        rs.getInt("user_id"),
+                        rs.getString("status")
+                ));
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+
+        return list;
+    }
+
+}
+=== C:\Users\hibba\IdeaProjects\PopIn\src\main\java\net\javaguids\popin\database\ReportDAO.java ===
+package net.javaguids.popin.database;
+
+import java.sql.*;
+import java.util.HashMap;
+import java.util.Map;
+
+public class ReportDAO {
+
+    public boolean addReport(int eventId, int attendeeId) {
+        String sql = "INSERT INTO reports (event_id, attendee_id) VALUES (?, ?)";
+        try (Connection conn = Database.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+
+            stmt.setInt(1, eventId);
+            stmt.setInt(2, attendeeId);
+            return stmt.executeUpdate() == 1;
+
+        } catch (SQLException e) {
+            System.err.println("ReportDAO.addReport error: " + e.getMessage());
+            return false;
+        }
+    }
+
+    public boolean hasUserReported(int eventId, int attendeeId) {
+        String sql = "SELECT COUNT(*) FROM reports WHERE event_id = ? AND attendee_id = ?";
+        try (Connection conn = Database.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+
+            stmt.setInt(1, eventId);
+            stmt.setInt(2, attendeeId);
+            try (ResultSet rs = stmt.executeQuery()) {
+                return rs.next() && rs.getInt(1) > 0;
+            }
+
+        } catch (SQLException e) {
+            System.err.println("ReportDAO.hasUserReported error: " + e.getMessage());
+            return false;
+        }
+    }
+
+    /** event_id -> report_count */
+    public Map<Integer, Integer> getReportCountsByEvent() {
+        String sql = """
+            SELECT event_id, COUNT(*) AS report_count
+            FROM reports
+            GROUP BY event_id
+            ORDER BY report_count DESC
+        """;
+        Map<Integer, Integer> result = new HashMap<>();
+
+        try (Connection conn = Database.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql);
+             ResultSet rs = stmt.executeQuery()) {
+
+            while (rs.next()) {
+                result.put(rs.getInt("event_id"), rs.getInt("report_count"));
+            }
+
+        } catch (SQLException e) {
+            System.err.println("ReportDAO.getReportCountsByEvent error: " + e.getMessage());
+        }
+
+        return result;
+    }
+}
+=== C:\Users\hibba\IdeaProjects\PopIn\src\main\java\net\javaguids\popin\database\UserDAO.java ===
+package net.javaguids.popin.database;
+
+import net.javaguids.popin.models.*;
+import java.sql.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Optional;
+
+public class UserDAO {
+
+    // ----------------------------------
+    // Map a DB row -> correct User subclass
+    // ----------------------------------
+    private User mapRowToUser(ResultSet rs) throws SQLException {
+        int id = rs.getInt("id");
+        String uname = rs.getString("username");
+        String passwordHash = rs.getString("password_hash");
+        String roleName = rs.getString("role_name");
+        String upper = roleName != null ? roleName.toUpperCase() : "";
+
+        User user;
+        switch (upper) {
+            case "ADMIN" -> {
+                user = new Admin(uname, passwordHash);
+            }
+            case "ORGANIZER" -> {
+                user = new Organizer(uname, passwordHash);
+            }
+            case "ATTENDEE" -> {
+                user = new Attendee(uname, passwordHash);
+            }
+            default -> {
+                // fallback: keep data but treat as ATTENDEE by default
+                System.err.println("UserDAO: unknown role '" + roleName + "', defaulting to ATTENDEE");
+                user = new Attendee(uname, passwordHash);
+            }
+        }
+
+        // set the DB id after construction
+        user.setId(id);
+        return user;
+    }
+
+    // ----------------------------------
+    // FIND USER BY USERNAME (used in login)
+    // ----------------------------------
+    public Optional<User> findByUsername(String username) {
+        String sql = "SELECT id, username, password_hash, role_name FROM users WHERE username = ?";
+        try (Connection conn = Database.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+
+            stmt.setString(1, username);
+            try (ResultSet rs = stmt.executeQuery()) {
+                if (rs.next()) {
+                    return Optional.of(mapRowToUser(rs));
+                }
+            }
+        } catch (SQLException e) {
+            System.err.println("UserDAO.findByUsername error: " + e.getMessage());
+        }
+        return Optional.empty();
+    }
+
+    // ----------------------------------
+    // FIND USER BY ID
+    // ----------------------------------
+    public User findById(int id) {
+        String sql = "SELECT id, username, password_hash, role_name FROM users WHERE id = ?";
+        try (Connection conn = Database.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+
+            stmt.setInt(1, id);
+            ResultSet rs = stmt.executeQuery();
+            if (rs.next()) {
+                return mapRowToUser(rs);
+            }
+        } catch (SQLException e) {
+            System.err.println("UserDAO.findById error: " + e.getMessage());
+        }
+        return null;
+    }
+
+    // ----------------------------------
+    // CREATE USER (used in signup)
+    // ----------------------------------
+    public boolean createUser(User user) {
+        String sql = "INSERT INTO users (username, password_hash, role_name) VALUES (?, ?, ?)";
+        try (Connection conn = Database.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+
+            stmt.setString(1, user.getUsername());
+            stmt.setString(2, user.getPasswordHash());
+            stmt.setString(3, user.getRole().getName());
+            int rows = stmt.executeUpdate();
+            return rows == 1;
+        } catch (SQLException e) {
+            System.err.println("UserDAO.createUser error: " + e.getMessage());
+            return false;
+        }
+    }
+
+    // ----------------------------------
+    // LIST ALL USERS (for admin user list)
+    // ----------------------------------
+    public List<User> listAll() {
+        List<User> users = new ArrayList<>();
+        String sql = "SELECT id, username, password_hash, role_name FROM users";
+        try (Connection conn = Database.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql);
+             ResultSet rs = stmt.executeQuery()) {
+
+            while (rs.next()) {
+                users.add(mapRowToUser(rs));
+            }
+        } catch (SQLException e) {
+            System.err.println("UserDAO.listAll error: " + e.getMessage());
+        }
+        return users;
+    }
+
+    // ----------------------------------
+    // ANALYTICS: COUNT ALL USERS
+    // ----------------------------------
+    public int countAll() {
+        String sql = "SELECT COUNT(*) FROM users";
+        try (Connection conn = Database.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql);
+             ResultSet rs = stmt.executeQuery()) {
+
+            return rs.getInt(1);
+        } catch (SQLException e) {
+            System.err.println("UserDAO.countAll error: " + e.getMessage());
+            return 0;
+        }
+    }
+
+    // ----------------------------------
+    // DELETE USER BY ID (admin delete)
+    // ----------------------------------
+    public boolean deleteById(int id) {
+        String sql = "DELETE FROM users WHERE id = ?";
+        try (Connection conn = Database.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+
+            stmt.setInt(1, id);
+            int rows = stmt.executeUpdate();
+            return rows == 1;
+        } catch (SQLException e) {
+            System.err.println("UserDAO.deleteById error: " + e.getMessage());
+            return false;
+        }
+    }
+
+    // ----------------------------------
+    // UPDATE PASSWORD (for profile page)
+    // ----------------------------------
+    public boolean updatePassword(int id, String newHash) {
+        String sql = "UPDATE users SET password_hash = ? WHERE id = ?";
+        try (Connection conn = Database.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+
+            stmt.setString(1, newHash);
+            stmt.setInt(2, id);
+            int rows = stmt.executeUpdate();
+            return rows == 1;
+        } catch (SQLException e) {
+            System.err.println("UserDAO.updatePassword error: " + e.getMessage());
+            return false;
+        }
+    }
+
+    // ----------------------------------
+    // UPDATE USERNAME (for profile page)
+    // ----------------------------------
+    public boolean updateUsername(int id, String newUsername) {
+        String sql = "UPDATE users SET username = ? WHERE id = ?";
+        try (Connection conn = Database.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+
+            stmt.setString(1, newUsername);
+            stmt.setInt(2, id);
+            int rows = stmt.executeUpdate();
+            return rows == 1;
+        } catch (SQLException e) {
+            System.err.println("UserDAO.updateUsername error: " + e.getMessage());
+            return false;
+        }
+    }
+
+    // ----------------------------------
+    // EMAIL NOTIFICATIONS (for profile page)
+    // ----------------------------------
+
+    // Returns true if notifications are enabled (defaults to true on error)
+    public boolean getEmailNotifications(int id) {
+        String sql = "SELECT email_notifications FROM users WHERE id = ?";
+        try (Connection conn = Database.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+
+            stmt.setInt(1, id);
+            ResultSet rs = stmt.executeQuery();
+            if (rs.next()) {
+                int value = rs.getInt("email_notifications"); // 1 or 0
+                return value != 0;
+            }
+        } catch (SQLException e) {
+            System.err.println("UserDAO.getEmailNotifications error: " + e.getMessage());
+        }
+        return true; // safe default
+    }
+
+    public boolean updateEmailNotifications(int id, boolean enabled) {
+        String sql = "UPDATE users SET email_notifications = ? WHERE id = ?";
+        try (Connection conn = Database.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+
+            stmt.setInt(1, enabled ? 1 : 0);
+            stmt.setInt(2, id);
+            int rows = stmt.executeUpdate();
+            return rows == 1;
+        } catch (SQLException e) {
+            System.err.println("UserDAO.updateEmailNotifications error: " + e.getMessage());
+            return false;
+        }
+    }
+}
+=== C:\Users\hibba\IdeaProjects\PopIn\src\main\java\net\javaguids\popin\exceptions\DatabaseException.java ===
+=== C:\Users\hibba\IdeaProjects\PopIn\src\main\java\net\javaguids\popin\exceptions\EventFullException.java ===
+=== C:\Users\hibba\IdeaProjects\PopIn\src\main\java\net\javaguids\popin\exceptions\InvalidCredentialsException.java ===
+=== C:\Users\hibba\IdeaProjects\PopIn\src\main\java\net\javaguids\popin\models\Admin.java ===
+package net.javaguids.popin.models;
+
+public class Admin extends User {
+
+    public Admin() {
+        setRole(new Role("ADMIN"));
+    }
+
+    public Admin(int id, String username, String passwordHash) {
+        super(id, username, passwordHash, new Role("ADMIN"));
+    }
+
+    public Admin(String username, String passwordHash) {
+        super(username, passwordHash, new Role("ADMIN"));
+    }
+}
+=== C:\Users\hibba\IdeaProjects\PopIn\src\main\java\net\javaguids\popin\models\Attendee.java ===
+package net.javaguids.popin.models;
+
+public class Attendee extends User {
+
+    public Attendee() {
+        setRole(new Role("ATTENDEE"));
+    }
+
+    public Attendee(int id, String username, String passwordHash) {
+        super(id, username, passwordHash, new Role("ATTENDEE"));
+    }
+
+    public Attendee(String username, String passwordHash) {
+        super(username, passwordHash, new Role("ATTENDEE"));
+    }
+}
+=== C:\Users\hibba\IdeaProjects\PopIn\src\main\java\net\javaguids\popin\models\Event.java ===
+package net.javaguids.popin.models;
+
+import java.time.LocalDateTime;
+
+public class Event {
+
+    private int id;
+    private String title;
+    private String description;
+    private LocalDateTime dateTime;
+    private String venue;
+    private int capacity;
+    private int organizerId;
+
+    public Event() {}
+
+    public Event(int id, String title, String description, LocalDateTime dateTime,
+                 String venue, int capacity, int organizerId) {
+        this.id = id;
+        this.title = title;
+        this.description = description;
+        this.dateTime = dateTime;
+        this.venue = venue;
+        this.capacity = capacity;
+        this.organizerId = organizerId;
+    }
+
+    public Event(String title, String description, LocalDateTime dateTime,
+                 String venue, int capacity, int organizerId) {
+        this.title = title;
+        this.description = description;
+        this.dateTime = dateTime;
+        this.venue = venue;
+        this.capacity = capacity;
+        this.organizerId = organizerId;
+    }
+
+    public int getId() { return id; }
+    public void setId(int id) { this.id = id; }
+
+    public String getTitle() { return title; }
+    public void setTitle(String title) { this.title = title; }
+
+    public String getDescription() { return description; }
+    public void setDescription(String description) { this.description = description; }
+
+    public LocalDateTime getDateTime() { return dateTime; }
+    public void setDateTime(LocalDateTime dateTime) { this.dateTime = dateTime; }
+
+    public String getVenue() { return venue; }
+    public void setVenue(String venue) { this.venue = venue; }
+
+    public int getCapacity() { return capacity; }
+    public void setCapacity(int capacity) { this.capacity = capacity; }
+
+    public int getOrganizerId() { return organizerId; }
+    public void setOrganizerId(int organizerId) { this.organizerId = organizerId; }
+}
+=== C:\Users\hibba\IdeaProjects\PopIn\src\main\java\net\javaguids\popin\models\FreeEvent.java ===
+package net.javaguids.popin.models;
+
+import java.time.LocalDateTime;
+
+public class FreeEvent extends Event {
+
+    public FreeEvent() {}
+
+    public FreeEvent(String title, String description, LocalDateTime dateTime,
+                     String venue, int capacity, int organizerId) {
+        super(title, description, dateTime, venue, capacity, organizerId);
+    }
+}
+=== C:\Users\hibba\IdeaProjects\PopIn\src\main\java\net\javaguids\popin\models\Organizer.java ===
+package net.javaguids.popin.models;
+
+public class Organizer extends User {
+
+    public Organizer() {
+        setRole(new Role("ORGANIZER"));
+    }
+
+    public Organizer(int id, String username, String passwordHash) {
+        super(id, username, passwordHash, new Role("ORGANIZER"));
+    }
+
+    public Organizer(String username, String passwordHash) {
+        super(username, passwordHash, new Role("ORGANIZER"));
+    }
+}
+=== C:\Users\hibba\IdeaProjects\PopIn\src\main\java\net\javaguids\popin\models\PaidEvent.java ===
+package net.javaguids.popin.models;
+
+import java.time.LocalDateTime;
+
+public class PaidEvent extends Event {
+
+    private double price;
+
+    // Constructor for NEW paid events (no id yet)
+    public PaidEvent(String title,
+                     String description,
+                     LocalDateTime dateTime,
+                     String venue,
+                     int capacity,
+                     int organizerId,
+                     double price) {
+
+        super(title, description, dateTime, venue, capacity, organizerId);
+        this.price = price;
+    }
+
+    // Constructor for EXISTING paid events (loaded from DB)
+    public PaidEvent(int id,
+                     String title,
+                     String description,
+                     LocalDateTime dateTime,
+                     String venue,
+                     int capacity,
+                     int organizerId,
+                     double price) {
+
+        super(id, title, description, dateTime, venue, capacity, organizerId);
+        this.price = price;
+    }
+
+    // Getter and Setter
+    public double getPrice() {
+        return price;
+    }
+
+    public void setPrice(double price) {
+        this.price = price;
+    }
+}
+=== C:\Users\hibba\IdeaProjects\PopIn\src\main\java\net\javaguids\popin\models\Registration.java ===
+package net.javaguids.popin.models;
+
+public class Registration {
+
+    private int id;
+    private int eventId;
+    private int userId;
+    private String status; // "REGISTERED", "CANCELLED", "CHECKED_IN"
+
+    public Registration() {}
+
+    public Registration(int id, int eventId, int userId, String status) {
+        this.id = id;
+        this.eventId = eventId;
+        this.userId = userId;
+        this.status = status;
+    }
+
+    public Registration(int eventId, int userId, String status) {
+        this.eventId = eventId;
+        this.userId = userId;
+        this.status = status;
+    }
+
+    public int getId() { return id; }
+    public void setId(int id) { this.id = id; }
+
+    public int getEventId() { return eventId; }
+    public void setEventId(int eventId) { this.eventId = eventId; }
+
+    public int getUserId() { return userId; }
+    public void setUserId(int userId) { this.userId = userId; }
+
+    public String getStatus() { return status; }
+    public void setStatus(String status) { this.status = status; }
+}
+=== C:\Users\hibba\IdeaProjects\PopIn\src\main\java\net\javaguids\popin\models\Role.java ===
+package net.javaguids.popin.models;
+
+public class Role {
+
+    private int id;
+    private String name; // e.g. "ADMIN", "ORGANIZER", "ATTENDEE"
+
+    public Role() {
+    }
+
+    public Role(String name) {
+        this.name = name;
+    }
+
+    public Role(int id, String name) {
+        this.id = id;
+        this.name = name;
+    }
+
+    public int getId() {
+        return id;
+    }
+
+    public void setId(int id) {
+        this.id = id;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
+    }
+
+    @Override
+    public String toString() {
+        return name;
+    }
+}
+=== C:\Users\hibba\IdeaProjects\PopIn\src\main\java\net\javaguids\popin\models\User.java ===
+package net.javaguids.popin.models;
+
+public abstract class User {
+    private int id;
+    private String username;
+    private String passwordHash;
+    private Role role;
+
+    public User() {}
+
+    public User(int id, String username, String passwordHash, Role role) {
+        this.id = id;
+        this.username = username;
+        this.passwordHash = passwordHash;
+        this.role = role;
+    }
+
+    public User(String username, String passwordHash, Role role) {
+        this.username = username;
+        this.passwordHash = passwordHash;
+        this.role = role;
+    }
+
+    // ---------- STATIC FACTORY HELPERS ----------
+    private static String safeRoleName(Role role) {
+        if (role == null || role.getName() == null) return "";
+        return role.getName().toUpperCase();
+    }
+
+    /**
+     * Factory for NEW users (no id yet) based on role.
+     */
+    public static User create(String username, String passwordHash, Role role) {
+        String r = safeRoleName(role);
+        if ("ADMIN".equals(r)) {
+            return new Admin(username, passwordHash);
+        } else if ("ORGANIZER".equals(r)) {
+            return new Organizer(username, passwordHash);
+        } else if ("ATTENDEE".equals(r)) {
+            return new Attendee(username, passwordHash);
+        }
+        // default: treat as attendee so app still works
+        return new Attendee(username, passwordHash);
+    }
+
+    /**
+     * Factory for EXISTING users loaded from DB (with id).
+     */
+    public static User create(int id, String username, String passwordHash, Role role) {
+        String r = safeRoleName(role);
+        if ("ADMIN".equals(r)) {
+            return new Admin(id, username, passwordHash);
+        } else if ("ORGANIZER".equals(r)) {
+            return new Organizer(id, username, passwordHash);
+        } else if ("ATTENDEE".equals(r)) {
+            return new Attendee(id, username, passwordHash);
+        }
+        // default: treat as attendee so app still works
+        return new Attendee(id, username, passwordHash);
+    }
+
+    // ---------- GETTERS / SETTERS ----------
+
+    public int getId() { return id; }
+
+    public void setId(int id) { this.id = id; }
+
+    public String getUsername() { return username; }
+
+    public void setUsername(String username) { this.username = username; }
+
+    public String getPasswordHash() { return passwordHash; }
+
+    public void setPasswordHash(String passwordHash) { this.passwordHash = passwordHash; }
+
+    public Role getRole() { return role; }
+
+    public void setRole(Role role) { this.role = role; }
+}
+=== C:\Users\hibba\IdeaProjects\PopIn\src\main\java\net\javaguids\popin\services\AuthService.java ===
+package net.javaguids.popin.services;
+
+import net.javaguids.popin.database.UserDAO;
+import net.javaguids.popin.models.Role;
+import net.javaguids.popin.models.User;
+import net.javaguids.popin.utils.PasswordHasher;
+
+import java.util.Optional;
+
+public class AuthService implements AuthServiceInterface {
+    private final UserDAO userDAO = new UserDAO();
+
+    /**
+     * Attempt login with username and password.
+     */
+    public Optional<User> login(String username, String plainPassword) {
+        if (username == null || username.isBlank() ||
+                plainPassword == null || plainPassword.isBlank()) {
+            return Optional.empty();
+        }
+
+        Optional<User> userOpt = userDAO.findByUsername(username);
+        if (userOpt.isEmpty()) {
+            return Optional.empty();
+        }
+
+        User user = userOpt.get();
+        boolean valid = PasswordHasher.matchPassword(plainPassword, user.getPasswordHash());
+        return valid ? Optional.of(user) : Optional.empty();
+    }
+
+    /**
+     * Register a new user with the given role.
+     */
+    public boolean registerUser(String username, String plainPassword, String roleName) {
+        if (username == null || username.isBlank()) return false;
+        if (plainPassword == null || plainPassword.isBlank()) return false;
+        if (roleName == null || roleName.isBlank()) return false;
+
+        String normalizedRole = roleName.trim().toUpperCase();
+        Role role = new Role(normalizedRole);
+        String hash = PasswordHasher.hashPassword(plainPassword);
+
+        // ðŸ”¥ use factory â†’ Admin / Organizer / Attendee instance
+        User user = User.create(username, hash, role);
+
+        return userDAO.createUser(user);
+    }
+}
+=== C:\Users\hibba\IdeaProjects\PopIn\src\main\java\net\javaguids\popin\services\AuthServiceInterface.java ===
+package net.javaguids.popin.services;
+
+import net.javaguids.popin.models.User;
+
+import java.util.Optional;
+
+public interface AuthServiceInterface {
+
+    Optional<User> login(String username, String plainPassword);
+
+    boolean registerUser(String username, String plainPassword, String roleName);
+}
+=== C:\Users\hibba\IdeaProjects\PopIn\src\main\java\net\javaguids\popin\services\EventService.java ===
+package net.javaguids.popin.services;
+
+import net.javaguids.popin.database.EventDAO;
+import net.javaguids.popin.models.Event;
+import net.javaguids.popin.models.PaidEvent;
+
+import java.time.LocalDateTime;
+import java.util.List;
+
+public class EventService implements EventServiceInterface {
+
+    private final EventDAO eventDAO = new EventDAO();
+
+    @Override
+    public boolean createEvent(String title, String description, LocalDateTime dateTime,
+                               String venue, int capacity, int organizerId, Double price) {
+        Event event = (price != null)
+                ? new PaidEvent(title, description, dateTime, venue, capacity, organizerId, price)
+                : new Event(title, description, dateTime, venue, capacity, organizerId);
+        return eventDAO.createEvent(event);
+    }
+
+    @Override
+    public boolean updateEvent(Event event, Double price) {
+        return eventDAO.updateEvent(event, price);
+    }
+
+    @Override
+    public boolean deleteEvent(int id) {
+        return eventDAO.deleteEvent(id);
+    }
+
+    @Override
+    public List<Event> getUpcomingEvents() {
+        return eventDAO.findAllUpcoming();
+    }
+
+    @Override
+    public List<Event> getAllEvents() {
+        return eventDAO.findAll();
+    }
+
+    @Override
+    public List<Event> getEventsByOrganizer(int organizerId) {
+        return eventDAO.findByOrganizerId(organizerId);
+    }
+}
+=== C:\Users\hibba\IdeaProjects\PopIn\src\main\java\net\javaguids\popin\services\EventServiceInterface.java ===
+package net.javaguids.popin.services;
+
+import net.javaguids.popin.models.Event;
+
+import java.time.LocalDateTime;
+import java.util.List;
+
+public interface EventServiceInterface {
+    boolean createEvent(String title, String description, LocalDateTime dateTime,
+                        String venue, int capacity, int organizerId, Double price);
+
+    boolean updateEvent(Event event, Double price);
+
+    boolean deleteEvent(int id);
+
+    List<Event> getUpcomingEvents();
+
+    List<Event> getAllEvents();
+
+    List<Event> getEventsByOrganizer(int organizerId);
+}
+=== C:\Users\hibba\IdeaProjects\PopIn\src\main\java\net\javaguids\popin\services\RegistrationService.java ===
+package net.javaguids.popin.services;
+
+import net.javaguids.popin.database.EventDAO;
+import net.javaguids.popin.database.RegistrationDAO;
+import net.javaguids.popin.models.Event;
+
+public class RegistrationService implements RegistrationServiceInterface {
+
+    private final RegistrationDAO registrationDAO = new RegistrationDAO();
+    private final EventDAO eventDAO = new EventDAO();
+
+    @Override
+    public boolean registerUser(int eventId, int userId) {
+        if (registrationDAO.isUserRegistered(eventId, userId)) {
+            throw new IllegalStateException("You are already registered for this event.");
+        }
+
+        Event event = eventDAO.findAllUpcoming().stream()
+                .filter(e -> e.getId() == eventId)
+                .findFirst()
+                .orElse(null);
+
+        if (event == null) {
+            throw new IllegalArgumentException("Event not found.");
+        }
+
+        int currentCount = registrationDAO.countRegistered(eventId);
+        if (currentCount >= event.getCapacity()) {
+            throw new IllegalStateException("This event is full.");
+        }
+
+        boolean reactivated = registrationDAO.updateStatus(eventId, userId, "REGISTERED");
+        if (reactivated) return true;
+
+        boolean success = registrationDAO.registerUser(eventId, userId);
+        if (!success) {
+            throw new RuntimeException("Could not register for event.");
+        }
+        return true;
+    }
+
+    @Override
+    public boolean cancelRegistration(int eventId, int userId) {
+        if (!registrationDAO.isUserRegistered(eventId, userId)) {
+            throw new IllegalStateException("You are not registered for this event.");
+        }
+        return registrationDAO.updateStatus(eventId, userId, "CANCELLED");
+    }
+
+    @Override
+    public boolean checkInUser(int eventId, int userId) {
+        if (!registrationDAO.isUserRegistered(eventId, userId)) {
+            throw new IllegalStateException("User is not registered for this event.");
+        }
+        return registrationDAO.updateStatus(eventId, userId, "CHECKED_IN");
+    }
+
+    @Override
+    public boolean isEventFull(int eventId) {
+        Event event = eventDAO.findAllUpcoming().stream()
+                .filter(e -> e.getId() == eventId)
+                .findFirst()
+                .orElse(null);
+
+        if (event == null) return true;
+        return registrationDAO.countRegistered(eventId) >= event.getCapacity();
+    }
+
+    @Override
+    public boolean isUserRegistered(int eventId, int userId) {
+        return registrationDAO.isUserRegistered(eventId, userId);
+    }
+}
+=== C:\Users\hibba\IdeaProjects\PopIn\src\main\java\net\javaguids\popin\services\RegistrationServiceInterface.java ===
+package net.javaguids.popin.services;
+
+public interface RegistrationServiceInterface {
+    boolean registerUser(int eventId, int userId);
+
+    boolean cancelRegistration(int eventId, int userId);
+
+    boolean checkInUser(int eventId, int userId);
+
+    boolean isEventFull(int eventId);
+
+    boolean isUserRegistered(int eventId, int userId);
+}
+=== C:\Users\hibba\IdeaProjects\PopIn\src\main\java\net\javaguids\popin\utils\CSVExportable.java ===
+=== C:\Users\hibba\IdeaProjects\PopIn\src\main\java\net\javaguids\popin\utils\CSVExporter.java ===
+=== C:\Users\hibba\IdeaProjects\PopIn\src\main\java\net\javaguids\popin\utils\PasswordHasher.java ===
+package net.javaguids.popin.utils;
+
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.nio.charset.StandardCharsets;
+
+public class PasswordHasher {
+
+    /**
+     * Hash a password using SHA-256.
+     * Main method you should call when storing passwords.
+     */
+    public static String hashPassword(String password) {
+        if (password == null) {
+            throw new IllegalArgumentException("Password cannot be null");
+        }
+        try {
+            MessageDigest md = MessageDigest.getInstance("SHA-256");
+            byte[] hash = md.digest(password.getBytes(StandardCharsets.UTF_8));
+            StringBuilder sb = new StringBuilder();
+            for (byte b : hash) {
+                sb.append(String.format("%02x", b));
+            }
+            return sb.toString();
+        } catch (NoSuchAlgorithmException e) {
+            throw new RuntimeException("Error hashing password", e);
+        }
+    }
+
+    /**
+     * Compare a plain text password with a stored hash.
+     */
+    public static boolean matchPassword(String plainPassword, String storedHash) {
+        if (plainPassword == null || storedHash == null) {
+            return false;
+        }
+        String computed = hashPassword(plainPassword);
+        return computed.equals(storedHash);
+    }
+
+    // --- Convenience aliases in case other code already uses these names ---
+
+    public static String hash(String password) {
+        return hashPassword(password);
+    }
+
+    public static boolean matches(String plainPassword, String storedHash) {
+        return matchPassword(plainPassword, storedHash);
+    }
+}
+=== C:\Users\hibba\IdeaProjects\PopIn\src\main\java\net\javaguids\popin\utils\SceneManager.java ===
+package net.javaguids.popin.utils;
+
+import javafx.fxml.FXMLLoader;
+import javafx.scene.Parent;
+import javafx.scene.Scene;
+import javafx.stage.Stage;
+
+public class SceneManager {
+
+    public static void showScene(Stage stage, String fxmlPath, String title) {
+        try {
+            FXMLLoader loader = new FXMLLoader(SceneManager.class.getResource(fxmlPath));
+            Parent root = loader.load();
+
+            stage.setTitle(title);
+            Scene scene = new Scene(root);
+            stage.setScene(scene);
+
+            // â­ Make the window match the FXML's preferred size
+            stage.sizeToScene();
+
+            // (Optional) prevent absurdly tiny windows
+            stage.setMinWidth(600);
+            stage.setMinHeight(400);
+
+            stage.show();
+        } catch (Exception e) {
+            System.err.println("SceneManager error: " + e.getMessage());
+            e.printStackTrace();
+        }
+    }
+
+    public static FXMLLoader loadFXML(String fxmlPath) {
+        return new FXMLLoader(SceneManager.class.getResource(fxmlPath));
+    }
+}
+=== C:\Users\hibba\IdeaProjects\PopIn\src\test\java\net\javaguids\popin\models\EventTest.java ===
+=== C:\Users\hibba\IdeaProjects\PopIn\src\test\java\net\javaguids\popin\services\AuthServiceTest.java ===
+=== C:\Users\hibba\IdeaProjects\PopIn\src\test\java\net\javaguids\popin\services\EventServiceTest.java ===
+=== C:\Users\hibba\IdeaProjects\PopIn\src\test\java\net\javaguids\popin\services\RegistrationServiceTest.java ===

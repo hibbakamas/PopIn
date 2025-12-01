@@ -17,7 +17,7 @@ import java.io.IOException;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 
-public class OrganizerDashboardController {
+public class OrganizerDashboardController implements DashboardController {
 
     @FXML private Label welcomeLabel;
     @FXML private Label statsLabel;
@@ -30,6 +30,7 @@ public class OrganizerDashboardController {
     private final DateTimeFormatter formatter =
             DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
 
+    @Override
     public void setLoggedInUser(User user) {
         this.loggedInUser = user;
         if (welcomeLabel != null && user != null) {
@@ -83,25 +84,22 @@ public class OrganizerDashboardController {
 
     @FXML
     private void handleProfile() {
-        // opens shared profile page, passes loggedInUser via openWindow()
         openWindow("/net/javaguids/popin/views/profile.fxml", "My Profile");
     }
 
     @FXML
     private void handleLogout() {
-        // back to login
         try {
             FXMLLoader loader = new FXMLLoader(
                     getClass().getResource("/net/javaguids/popin/views/login.fxml"));
             Parent root = loader.load();
-            Stage stage = new Stage();
+
+            // Reuse same Stage for login
+            Stage stage = (Stage) welcomeLabel.getScene().getWindow();
             stage.setTitle("PopIn – Login");
             stage.setScene(new Scene(root));
+            stage.centerOnScreen();
             stage.show();
-
-            // close current dashboard window
-            Stage current = (Stage) welcomeLabel.getScene().getWindow();
-            current.close();
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -111,8 +109,6 @@ public class OrganizerDashboardController {
         try {
             FXMLLoader loader = new FXMLLoader(getClass().getResource(fxml));
             Parent root = loader.load();
-
-            // Pass loggedInUser forward if target controller has setLoggedInUser(User)
             try {
                 Object controller = loader.getController();
                 controller.getClass()
@@ -123,13 +119,10 @@ public class OrganizerDashboardController {
             Stage stage = new Stage();
             stage.setTitle(title);
             stage.setScene(new Scene(root));
-
-            // when child window closes, refresh dashboard
             stage.setOnHidden(e -> {
                 updateStats();
                 loadMyEventsPreview();
             });
-
             stage.show();
         } catch (IOException e) {
             e.printStackTrace();

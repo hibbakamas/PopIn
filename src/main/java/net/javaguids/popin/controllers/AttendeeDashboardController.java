@@ -1,16 +1,19 @@
 package net.javaguids.popin.controllers;
 
+import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
+import javafx.scene.Node;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.stage.Stage;
 import net.javaguids.popin.models.User;
 
-public class AttendeeDashboardController {
+public class AttendeeDashboardController implements DashboardController {
 
     private User loggedInUser;
 
+    @Override
     public void setLoggedInUser(User user) {
         this.loggedInUser = user;
     }
@@ -78,6 +81,7 @@ public class AttendeeDashboardController {
             Stage stage = new Stage();
             stage.setTitle("My Profile");
             stage.setScene(new Scene(root));
+            stage.centerOnScreen();
             stage.show();
         } catch (Exception e) {
             e.printStackTrace();
@@ -85,17 +89,16 @@ public class AttendeeDashboardController {
     }
 
     @FXML
-    private void handleLogout() {
-        openScene("/net/javaguids/popin/views/login.fxml", "Login");
-    }
-
-    private void openScene(String fxml, String title) {
+    private void handleLogout(ActionEvent event) {
         try {
-            FXMLLoader loader = new FXMLLoader(getClass().getResource(fxml));
+            FXMLLoader loader = new FXMLLoader(
+                    getClass().getResource("/net/javaguids/popin/views/login.fxml"));
             Parent root = loader.load();
-            Stage stage = new Stage();
+
+            // Get current window from the button that triggered the event
+            Stage stage = (Stage) ((Node) event.getSource()).getScene().getWindow();
+            stage.setTitle("PopIn – Login");
             stage.setScene(new Scene(root));
-            stage.setTitle(title);
             stage.show();
         } catch (Exception e) {
             e.printStackTrace();
