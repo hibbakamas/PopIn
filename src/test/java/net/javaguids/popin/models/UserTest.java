@@ -4,29 +4,43 @@ import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-/**
- * Simple unit tests for the User model:
- *  - setters/getters work
- *  - role can be attached correctly
- */
-class UserTest {
+public class UserTest {
 
     @Test
-    void userStoresCoreFields() {
-        User user = new User();
-        user.setId(10);
-        user.setUsername("alice");
-        user.setPasswordHash("hash123");
+    void createAdminReturnsAdmin() {
+        Role role = new Role("ADMIN");
+        User user = User.create("alice", "hash123", role);
 
-        Role role = new Role();
-        role.setId(2);
-        role.setName("ATTENDEE");
-        user.setRole(role);
-
-        assertEquals(10, user.getId());
+        assertTrue(user instanceof Admin);
+        assertEquals("ADMIN", user.getRole().getName());
         assertEquals("alice", user.getUsername());
         assertEquals("hash123", user.getPasswordHash());
-        assertNotNull(user.getRole());
+    }
+
+    @Test
+    void createOrganizerReturnsOrganizer() {
+        Role role = new Role("ORGANIZER");
+        User user = User.create("bob", "hash456", role);
+
+        assertTrue(user instanceof Organizer);
+        assertEquals("ORGANIZER", user.getRole().getName());
+    }
+
+    @Test
+    void createAttendeeReturnsAttendee() {
+        Role role = new Role("ATTENDEE");
+        User user = User.create("carol", "hash789", role);
+
+        assertTrue(user instanceof Attendee);
+        assertEquals("ATTENDEE", user.getRole().getName());
+    }
+
+    @Test
+    void createWithUnknownRoleDefaultsToAttendee() {
+        Role role = new Role("SOMETHING_WEIRD");
+        User user = User.create("dave", "hashX", role);
+
+        assertTrue(user instanceof Attendee);
         assertEquals("ATTENDEE", user.getRole().getName());
     }
 }

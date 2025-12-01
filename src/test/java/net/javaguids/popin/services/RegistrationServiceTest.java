@@ -107,4 +107,34 @@ class RegistrationServiceTest {
         assertThrows(RuntimeException.class,
                 () -> registrationService.registerUser(event.getId(), u2.getId()));
     }
+
+    @Test
+    void registeringTwiceThrows() {
+        // 1. Create event in DB so RegistrationService can find it
+        Event event = new Event(
+                "Test Event",
+                "desc",
+                LocalDateTime.now().plusDays(1),
+                "Venue",
+                10,
+                1
+        );
+        eventDAO.createEvent(event); // <-- IMPORTANT
+
+        int eventId = eventDAO.findAll().get(0).getId();
+        int userId = 123;
+
+        // 2. First registration should succeed
+        registrationService.registerUser(eventId, userId);
+
+        // 3. Second registration should throw
+        assertThrows(IllegalStateException.class, () ->
+                registrationService.registerUser(eventId, userId)
+        );
+    }
+
+
+
+
+
 }
